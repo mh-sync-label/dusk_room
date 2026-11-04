@@ -55,10 +55,10 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 .callout-lines line { stroke: rgba(35,36,31,0.55); stroke-width: 1; }
 .callout-lines circle { fill: #fff; stroke: rgba(35,36,31,0.7); stroke-width: 0.8; }
 .callout { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap;
-  padding: 2px 7px 2px 6px; border-radius: 99px; background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.1); font-size: 0.7rem; color: #23241f; transition: opacity .35s; }
-.callout .k { font-size: 0.52rem; letter-spacing: 0.08em; text-transform: uppercase; color: #8a6a44; }
-.callout .v { font-family: "EB Garamond", Garamond, Georgia, serif; font-size: 0.78rem; }
+  padding: 1px 6px 2px 5px; border-radius: 99px; background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.1); font-size: 0.64rem; color: #23241f; transition: opacity .35s; }
+.callout .k { font-size: 0.48rem; letter-spacing: 0.08em; text-transform: uppercase; color: #8a6a44; }
+.callout .v { font-family: "EB Garamond", Garamond, Georgia, serif; font-size: 0.72rem; }
 .callout.coll .v { font-style: italic; }
 .callout[hidden], .callout-lines.off { display: none; }
 .readlink { position: absolute; left: 14px; bottom: 12px; padding: 3px 0; border-radius: 0; background: none; font-size: 0.86rem; font-weight: 500;
@@ -83,7 +83,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 <div class="wrap">
   <header>
     <h1>Desk and Folder</h1>
-    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v13</p>
+    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v14</p>
   </header>
   <div class="stage" id="stage">
     <canvas id="c" aria-label="A light-oak writing desk in a quiet greyscale room, with tonight's poem on loose sheets in an open folder, and a window to the night. Click the folder to read it."></canvas>
@@ -654,20 +654,21 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     const vis = labelsOn && !orbit ? Math.min(1, Math.max(0, (cur.par - 0.007) / 0.005)) : (labelsOn && orbit ? 1 : 0);   // fade out in the reading view
     [CA, CB].forEach(c => c.style.opacity = vis); CL.style.opacity = vis; CL.classList.toggle('off', vis === 0);
     if (vis === 0) return;
+    // one leader line from the sheet to the AUTHOR pill; the FROM pill stacks just beneath it (2026-11-04)
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    [[CA, lineA, dotA, calloutAnchors[0], -1], [CB, lineB, dotB, calloutAnchors[1], 1]].forEach(([el, ln, dot, a, sideSign]) => {
-      if (el.hidden) { ln.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); return; }
-      pv.copy(a).project(camera);
-      const ax = (pv.x + 1) / 2 * w, ay = (1 - pv.y) / 2 * h, ok = pv.z < 1;
-      const bw = el.offsetWidth, bh = el.offsetHeight;
-      let lx = ax + sideSign * Math.min(80, w * 0.07) - (sideSign < 0 ? bw : 0), ly = ay - Math.min(64, h * 0.11) - bh / 2;
-      lx = Math.max(8, Math.min(w - bw - 8, lx)); ly = Math.max(8, Math.min(h - bh - 8, ly));
-      el.style.transform = `translate(${lx.toFixed(1)}px, ${ly.toFixed(1)}px)`;
-      const ex = sideSign < 0 ? lx + bw : lx, ey = ly + bh / 2;
-      ln.setAttribute('x1', ax); ln.setAttribute('y1', ay); ln.setAttribute('x2', ex); ln.setAttribute('y2', ey);
-      dot.setAttribute('cx', ax); dot.setAttribute('cy', ay);
-      [ln, dot].forEach(n => n.setAttribute('visibility', ok ? 'visible' : 'hidden')); el.style.visibility = ok ? 'visible' : 'hidden';
-    });
+    lineB.setAttribute('visibility', 'hidden'); dotB.setAttribute('visibility', 'hidden');
+    pv.copy(calloutAnchors[0]).project(camera);
+    const ax = (pv.x + 1) / 2 * w, ay = (1 - pv.y) / 2 * h, ok = pv.z < 1;
+    const top = CA.hidden ? CB : CA, bw = Math.max(CA.hidden ? 0 : CA.offsetWidth, CB.hidden ? 0 : CB.offsetWidth);
+    const bh = top.offsetHeight, stackH = bh + (CA.hidden || CB.hidden ? 0 : CB.offsetHeight + 3);
+    let lx = ax - Math.min(80, w * 0.07) - bw, ly = ay - Math.min(64, h * 0.11) - bh / 2;
+    lx = Math.max(8, Math.min(w - bw - 8, lx)); ly = Math.max(8, Math.min(h - stackH - 8, ly));
+    if (!CA.hidden) CA.style.transform = `translate(${(lx + bw - CA.offsetWidth).toFixed(1)}px, ${ly.toFixed(1)}px)`;
+    if (!CB.hidden) CB.style.transform = `translate(${(lx + bw - CB.offsetWidth).toFixed(1)}px, ${(CA.hidden ? ly : ly + bh + 3).toFixed(1)}px)`;
+    lineA.setAttribute('x1', ax); lineA.setAttribute('y1', ay); lineA.setAttribute('x2', lx + bw); lineA.setAttribute('y2', ly + bh / 2);
+    dotA.setAttribute('cx', ax); dotA.setAttribute('cy', ay);
+    [lineA, dotA].forEach(n => n.setAttribute('visibility', ok ? 'visible' : 'hidden'));
+    [CA, CB].forEach(c => c.style.visibility = ok ? 'visible' : 'hidden');
   }
 
   const side = new THREE.Vector3(), upv = new THREE.Vector3();
