@@ -37,6 +37,12 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; lett
 .reading #c.over-folder, .reading #c { cursor: zoom-out; }
 .status { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(236,236,230,0.75); font-size: 0.95rem; pointer-events: none; text-align: center; padding: 24px; }
 .status[hidden] { display: none; }
+.devbar { position: absolute; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: calc(100% - 200px); z-index: 3; }
+.devbar .group { background: rgba(28,29,26,0.86); border-color: rgba(255,255,255,0.08); }
+.devbar button { color: #ecebe6; } .devbar .group .lbl { color: #a2a39b; }
+.devbar button:hover { background: rgba(255,255,255,0.1); }
+.embed .devbar { display: none; }
+@media (max-width: 720px) { .devbar { display: none; } }
 .dock { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-end; pointer-events: none; }
 .group { pointer-events: auto; display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--chip); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
 .group .lbl { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 6px 6px 6px 8px; align-self: center; }
@@ -76,6 +82,25 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     <div class="hint" id="hint">Click the folder to read</div>
     <button class="readlink" id="readLink" type="button">Read tonight's poem</button>
     <div class="progress" id="progress" aria-hidden="true"><i id="progressFill"></i></div>
+    <!-- review toolbar (2026-11-04), as on the Endcap viewer: for working on the scene, hidden in the website embed -->
+    <div class="devbar" id="devbar">
+      <div class="group" role="group" aria-label="Camera view">
+        <span class="lbl">View</span>
+        <button data-view="room" aria-pressed="true">Room</button>
+        <button data-view="hero" aria-pressed="false">Hero</button>
+        <button data-view="desk" aria-pressed="false">Desk</button>
+        <button data-view="top" aria-pressed="false">Top</button>
+        <button data-view="window" aria-pressed="false">Window</button>
+        <button data-view="folder" aria-pressed="false">Read</button>
+        <button id="orbitBtn" aria-pressed="false">Orbit</button>
+        <button id="snapBtn">Save image</button>
+      </div>
+      <div class="group" role="group" aria-label="Room palette">
+        <span class="lbl">Room</span>
+        <button data-palette="grey" aria-pressed="true">Grey</button>
+        <button data-palette="green" aria-pressed="false">Green</button>
+      </div>
+    </div>
   </div>
   <p class="poem-meta" id="poemMeta"></p>
   <section class="poem-block" aria-label="Tonight's poem">
@@ -87,6 +112,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 (function () {
   if (/[?&]embed=1/.test(location.search)) document.body.classList.add('embed');
@@ -142,7 +168,20 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   // ---------- room: simple, geometric, greyscale (Store-scene style). Authored in the Blender inch coordinates ----------
   // Blender (x, y, z) inches -> three (x, z, -y) metres. Back wall on y=0; the nook's left wall at x=-47.
   const U = 0.0254, room = new THREE.Group(); scene.add(room);
-  const grey = (v, r, m) => { const c = Math.round(v * 255); const x = new THREE.MeshStandardMaterial({ color: (c << 16) | (c << 8) | c, roughness: r === undefined ? 0.8 : r, metalness: m || 0 }); x.envMapIntensity = ENV_ROOM; return x; };
+  // Room palette (2026-11-04): every room material is one tonal value v (0 = black, 1 = white) mapped through the active
+  // palette, so a setting can change the room's colour without touching the desk, folder, lamp or poem.
+  // grey: true greyscale (the Endcap look). green: deep tonal greens after Maxx's green-room reference.
+  // Pick with ?palette=green, or change ROOM_PALETTE.
+  const ROOM_PALETTE = 'grey';
+  const PALETTE = new URLSearchParams(location.search).get('palette') || ROOM_PALETTE;
+  const PALETTES = {
+    grey:  v => { const c = Math.round(v * 255); return (c << 16) | (c << 8) | c; },
+    green: v => new THREE.Color().setHSL(0.42, 0.66 - 0.12 * v, 0.03 + 0.125 * v).getHex()   // deep, saturated tonal greens
+  };
+  let tone = PALETTES[PALETTE] || PALETTES.grey;
+  const ROOM_MATS = [];
+  const grey = (v, r, m) => { const x = new THREE.MeshStandardMaterial({ color: tone(v), roughness: r === undefined ? 0.8 : r, metalness: m || 0 }); x.envMapIntensity = ENV_ROOM; ROOM_MATS.push([x, v]); return x; };
+  function setPalette(name) { tone = PALETTES[name] || PALETTES.grey; ROOM_MATS.forEach(([x, v]) => x.color.setHex(tone(v))); return name; }
   const G = { cabDoor: grey(0.28, 0.5), wall: grey(0.93, 0.9), floor: grey(0.40, 0.7), trim: grey(0.9, 0.6), cab: grey(0.24, 0.55), slot: grey(0.06, 0.6),
               chair: grey(0.09, 0.45), shell: grey(0.16, 0.5), metal: grey(0.7, 0.3, 0.9), lamp: grey(0.08, 0.45), lampIn: grey(0.95, 0.5),
               bookD: grey(0.16, 0.7), bookL: grey(0.86, 0.7), ceramic: grey(0.94, 0.35) };
@@ -427,6 +466,14 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   const HFOV = 2 * Math.atan(18 / 30);                       // matches the Blender front camera (30 mm, 36 mm sensor)
   const P = (x, y, z) => new THREE.Vector3(x * U, z * U, -y * U);
   const ROOM = { pos: P(DX - 8, -150, 64), tgt: P(DX - 8, 0, 32), up: new THREE.Vector3(0, 1, 0), par: 0.05 };
+  const UP = new THREE.Vector3(0, 1, 0);
+  const REVIEW = {                                           // review-toolbar views (inches, Blender axes via P)
+    room: ROOM,
+    hero:   { pos: P(DX + 62, -112, 60), tgt: P(DX - 6, -12, 32), up: UP, par: 0.04 },   // three-quarter from front right
+    desk:   { pos: P(DX - 2, -64, 47), tgt: P(DX - 2, -12, 31), up: UP, par: 0.02 },     // the desk and folder, closer
+    top:    { pos: P(DX + 2, -24, 90), tgt: P(DX + 2, -13.4, 30), up: UP, par: 0.01 },   // near-plan over the desktop, clear of the cabinets
+    window: { pos: P(DX - 22, -96, 50), tgt: P(48, 0, 44), up: UP, par: 0.03 }           // toward the window and sky
+  };
   const READ_D = 0.46, READ_HALF = 5.6;                      // camera distance (m); half the visible sheet length (in)
   let sRead = 0, sReadTo = 0;
   const sBounds = () => { const lo = Math.min(READ_HALF, sheetL / 2), hi = Math.max(lo, sheetL - READ_HALF); return [lo, hi]; };
@@ -450,7 +497,9 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     document.getElementById('stage').classList.toggle('reading', name === 'folder');
     if (name === 'folder') { sRead = sReadTo = sBounds()[0]; }
     setHint();
-    const to = name === 'folder' ? readingPose(sRead) : ROOM;
+    const to = name === 'folder' ? readingPose(sRead) : (REVIEW[name] || ROOM);
+    document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+    if (orbit) setOrbit(false);
     if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { cur.pos.copy(to.pos); cur.tgt.copy(to.tgt); cur.up.copy(to.up); cur.par = to.par; anim = null; return; }
     anim = { t0: performance.now(), dur: 1100, fp: cur.pos.clone(), ft: cur.tgt.clone(), fu: cur.up.clone(), fpar: cur.par, to };
   }
@@ -477,6 +526,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   addEventListener('pointerup', () => { setTimeout(() => { drag = null; }, 0); });
   canvas.addEventListener('pointerleave', () => parTo.set(0, 0));
   canvas.addEventListener('click', e => {
+    if (orbit) return;
     if (drag && drag.moved > 6) return;                      // a drag to scroll is not a click
     if (view === 'folder') { goTo('room'); return; }
     const r = canvas.getBoundingClientRect();
@@ -494,6 +544,31 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     }
   }
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  // review toolbar: views, free orbit for inspection, palette switch, save image
+  let orbit = false, controls = null;
+  function setOrbit(on) {
+    orbit = on; document.getElementById('orbitBtn').setAttribute('aria-pressed', String(on));
+    if (on) {
+      if (!controls && THREE.OrbitControls) { controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 0.3; controls.maxDistance = 6; }
+      if (!controls) return;
+      anim = null; camera.up.set(0, 1, 0); camera.position.copy(cur.pos); controls.target.copy(cur.tgt); controls.enabled = true; controls.update();
+    } else if (controls) controls.enabled = false;
+  }
+  document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.view)));
+  document.getElementById('orbitBtn').addEventListener('click', () => {
+    if (orbit) { setOrbit(false); goTo(view === 'folder' ? 'folder' : view, true); } else setOrbit(true);
+  });
+  document.querySelectorAll('[data-palette]').forEach(b => b.addEventListener('click', () => {
+    setPalette(b.dataset.palette);
+    document.querySelectorAll('[data-palette]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  }));
+  document.querySelectorAll('[data-palette]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.palette === (PALETTES[PALETTE] ? PALETTE : 'grey'))));
+  document.getElementById('snapBtn').addEventListener('click', () => {
+    renderer.render(scene, camera);
+    const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = 'dusk-room-' + view + '.png';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
   const side = new THREE.Vector3(), upv = new THREE.Vector3();
   function tick(now) {
     resize();
@@ -506,6 +581,9 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
       sRead += (sReadTo - sRead) * 0.12;
       const q = readingPose(sRead); cur.pos.copy(q.pos); cur.tgt.copy(q.tgt); cur.up.copy(q.up); cur.par = q.par;
       const [lo, hi] = sBounds(); progressFill.style.height = (hi > lo ? (sRead - lo) / (hi - lo) * 100 : 0).toFixed(1) + '%';
+    }
+    if (orbit && controls) {
+      controls.update(); renderer.render(scene, camera); requestAnimationFrame(tick); return;
     }
     if (LAMP) { const t = Math.min(1, Math.max(0, (cur.par - 0.006) / 0.044)); LAMP.intensity = 1.6 + 5.9 * t; }   // 7.5 in the room, 1.6 up close
     par.lerp(parTo, 0.06);
@@ -581,7 +659,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   })();
   goTo('room', true);
   requestAnimationFrame(tick);
-  window.__goTo = goTo; window.__setPoem = setPoem; window.__nudge = nudge;
+  window.__goTo = goTo; window.__setPalette = setPalette; window.__setPoem = setPoem; window.__nudge = nudge;
 })();
 </script>
 
