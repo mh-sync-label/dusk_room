@@ -119,24 +119,32 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
   // Dusk (2026-11-03): moonlight through the window is the key light and casts the window's shape across the desk.
   // A faint cool sky fill and a low warm fill from the viewer's side keep the oak desk and navy folder in true colour.
-  const ENV_ROOM = 0.16, ENV_SUBJECT = 0.42;   // dusk, not deep night (Maxx: night was too dreary)
-  scene.add(new THREE.HemisphereLight(0xb4c0d8, 0x3a3631, 0.5));
+  const ENV_ROOM = 0.35, ENV_SUBJECT = 0.55;   // the Endcap's values: crisp whites and a subject that pops (2026-11-03)
+  scene.add(new THREE.HemisphereLight(0xeef2fa, 0x4a4844, 0.26));
   const moonTarget = new THREE.Vector3(0.15, 0.77, 0.35);
-  const moon = new THREE.DirectionalLight(0xd2ddf2, 1.7);
+  const moon = new THREE.DirectionalLight(0xe6edfa, 2.6);
   moon.position.copy(moonTarget).add(new THREE.Vector3(2.9, 1.35, -0.5).multiplyScalar(1.2));
   moon.target.position.copy(moonTarget); scene.add(moon.target);
   moon.castShadow = true; moon.shadow.mapSize.set(4096, 4096);
   Object.assign(moon.shadow.camera, { left: -4.5, right: 4.5, top: 3, bottom: -3, near: 0.3, far: 12 });   // covers the whole visible room
-  moon.shadow.radius = 5; moon.shadow.blurSamples = 16; moon.shadow.bias = -0.004; moon.shadow.normalBias = 0.05;   // grazing light: generous bias against banding
+  moon.shadow.radius = 3; moon.shadow.blurSamples = 16; moon.shadow.bias = -0.004; moon.shadow.normalBias = 0.05;   // grazing light: generous bias against banding
   scene.add(moon);
-  const warm = new THREE.DirectionalLight(0xffdcb0, 0.45); warm.position.set(-1.5, 1.6, 3.5); scene.add(warm);
+  // Endcap-style key (2026-11-03): a strong, warm-neutral light high from the front left with soft shadows, so the
+  // desk, chair and pedestal sit on the floor with depth and the oak pops against white walls
+  const key = new THREE.DirectionalLight(0xfff4e6, 1.25);
+  key.position.set(-0.6, 2.5, 3.3); key.target.position.set(0.15, 0.5, 0.3); scene.add(key.target);   // inside the room, below the ceiling
+  key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  Object.assign(key.shadow.camera, { left: -2.8, right: 2.8, top: 2.6, bottom: -1.8, near: 0.5, far: 10 });
+  key.shadow.radius = 7; key.shadow.blurSamples = 16; key.shadow.bias = -0.0005; key.shadow.normalBias = 0.02;
+  scene.add(key);
+  const warm = new THREE.DirectionalLight(0xfff0dc, 0.22); warm.position.set(1.5, 1.6, 3.5); scene.add(warm);
 
   // ---------- room: simple, geometric, greyscale (Store-scene style). Authored in the Blender inch coordinates ----------
   // Blender (x, y, z) inches -> three (x, z, -y) metres. Back wall on y=0; the nook's left wall at x=-47.
   const U = 0.0254, room = new THREE.Group(); scene.add(room);
   const grey = (v, r, m) => { const c = Math.round(v * 255); const x = new THREE.MeshStandardMaterial({ color: (c << 16) | (c << 8) | c, roughness: r === undefined ? 0.8 : r, metalness: m || 0 }); x.envMapIntensity = ENV_ROOM; return x; };
   const G = { cabDoor: grey(0.28, 0.5), wall: grey(0.93, 0.9), floor: grey(0.40, 0.7), trim: grey(0.9, 0.6), cab: grey(0.24, 0.55), slot: grey(0.06, 0.6),
-              chair: grey(0.09, 0.45), shell: grey(0.2, 0.5), metal: grey(0.7, 0.3, 0.9), lamp: grey(0.08, 0.45), lampIn: grey(0.95, 0.5),
+              chair: grey(0.09, 0.45), shell: grey(0.16, 0.5), metal: grey(0.7, 0.3, 0.9), lamp: grey(0.08, 0.45), lampIn: grey(0.95, 0.5),
               bookD: grey(0.16, 0.7), bookL: grey(0.86, 0.7), ceramic: grey(0.94, 0.35) };
   function B(sx, sy, sz, x, y, z, m, rz, parent) {
     const o = new THREE.Mesh(new THREE.BoxGeometry(sx * U, sz * U, sy * U), m);
