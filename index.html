@@ -73,7 +73,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 <div class="wrap">
   <header>
     <h1>Desk and Folder</h1>
-    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v8</p>
+    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v9</p>
   </header>
   <div class="stage" id="stage">
     <canvas id="c" aria-label="A light-oak writing desk in a quiet greyscale room, with tonight's poem on loose sheets in an open folder, and a window to the night. Click the folder to read it."></canvas>
@@ -175,7 +175,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   const PALETTE = new URLSearchParams(location.search).get('palette') || ROOM_PALETTE;
   const PALETTES = {
     grey:  v => { const c = Math.round(v * 255); return (c << 16) | (c << 8) | c; },
-    green: v => new THREE.Color().setHSL(0.42, 0.66 - 0.12 * v, 0.03 + 0.125 * v).getHex()   // deep, saturated tonal greens
+    green: v => new THREE.Color().setHSL(0.42, 0.72 - 0.34 * v, 0.018 + 0.23 * Math.pow(v, 1.7)).getHex()   // light sage walls, deep forest furniture
   };
   let tone = PALETTES[PALETTE] || PALETTES.grey;
   const ROOM_MATS = [];
@@ -308,6 +308,64 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     lampLight.castShadow = true; lampLight.shadow.mapSize.set(1024, 1024); lampLight.shadow.radius = 4; lampLight.shadow.bias = -0.0008;
     lampLight.shadow.camera.near = 0.05; lampLight.shadow.camera.far = 3;
     const glow = new THREE.PointLight(0xffc68a, 0.45, 1.2, 2); glow.position.set(0, -2 * U, 0); shade.add(glow);   // soft halo around the shade
+  }
+  // a messy pair of jeans on the floor (2026-11-04, after Maxx's reference): two flattened, wrinkled legs folding over
+  // themselves from a bunched waist, with a denim weave and stitched seams. Toned by the room palette like the other
+  // background objects (Maxx, 2026-11-04): the texture is neutral and the palette supplies the colour.
+  {
+    const V = (x, y, z) => new THREE.Vector3(x * U, z * U, -y * U);
+    // denim texture: indigo twill, faded streaks, and a stitched seam line (texture y runs around the leg)
+    const dc = document.createElement('canvas'); dc.width = 512; dc.height = 512;
+    { const g = dc.getContext('2d');
+      g.fillStyle = '#c4c4c4'; g.fillRect(0, 0, 512, 512);
+      for (let i = -512; i < 1024; i += 3) { g.strokeStyle = (i / 3) % 2 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.16)'; g.lineWidth = 1.4;
+        g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 512, 512); g.stroke(); }                     // twill
+      for (let k = 0; k < 900; k++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '0,0,0'},${Math.random() * 0.08})`;
+        g.fillRect(Math.random() * 512, Math.random() * 512, 6 + Math.random() * 40, 1 + Math.random() * 2); }   // slub and fading
+      for (let k = 0; k < 7; k++) { const y = 140 + Math.random() * 230, gr = g.createLinearGradient(0, y - 30, 0, y + 30);
+        gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.5, 'rgba(255,255,255,0.24)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = gr; g.fillRect(0, y - 30, 512, 60); }                                          // worn, lighter areas
+      g.fillStyle = 'rgba(0,0,0,0.3)'; g.fillRect(0, 6, 512, 10);                               // seam allowance
+      g.fillStyle = '#f2f2f2'; for (let x = 0; x < 512; x += 14) { g.fillRect(x, 8, 8, 2); g.fillRect(x + 4, 14, 8, 2); }   // double stitch
+    }
+    const dtex = new THREE.CanvasTexture(dc); dtex.encoding = THREE.sRGBEncoding; dtex.wrapS = dtex.wrapT = THREE.RepeatWrapping;
+    dtex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const denim = grey(0.52, 0.96);                       // a mid tone: darker than the walls, lighter than the cabinets
+    denim.map = dtex; denim.bumpMap = dtex; denim.bumpScale = 0.0006;
+    const wob = (a, b, c) => Math.sin(a * 1.7 + b * 2.3) * Math.sin(b * 1.3 + c * 2.9) + 0.5 * Math.sin(a * 3.1 - c * 1.9 + b * 0.7);
+    const finish = (geo) => { geo.computeVertexNormals(); const m = new THREE.Mesh(geo, denim); m.castShadow = m.receiveShadow = true; room.add(m); return m; };
+    function leg(pts, r0, r1, seed) {                         // a flattened, tapered, wrinkled tube along the floor
+      const curve = new THREE.CatmullRomCurve3(pts.map(p => V(...p)), false, 'centripetal');
+      const N = 120, R = 24, geo = new THREE.TubeGeometry(curve, N, 1, R, false), pos = geo.attributes.position;
+      for (let i = 0; i <= N; i++) {
+        const t = i / N, c = curve.getPointAt(t), r = (r0 + (r1 - r0) * t) * U;
+        const fold = 1 + 0.07 * Math.sin(t * 30 + seed) + 0.04 * Math.sin(t * 71 + seed * 2);   // soft bunching folds across the leg
+        for (let j = 0; j <= R; j++) {
+          const k = i * (R + 1) + j, o = new THREE.Vector3(pos.getX(k), pos.getY(k), pos.getZ(k)).sub(c).multiplyScalar(r * fold);
+          const th = j / R * Math.PI * 2;
+          o.y *= 0.3 * (1 + 0.25 * Math.max(0, Math.sin(t * 30 + seed)));                   // lying flat, puffing at the folds
+          o.multiplyScalar(1 + 0.05 * Math.sin(th * 2 + t * 9 + seed));                      // a gentle twist, smooth outline
+          const p = c.clone().add(o); p.y = Math.max(0.002, p.y); pos.setXYZ(k, p.x, p.y, p.z);
+        }
+      }
+      const uv = geo.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getX(k) * 9, uv.getY(k) * 2);
+      return finish(geo);
+    }
+    // bunched waist and seat: a squashed, lumpy mound with a waistband ring half sunk into it
+    const W = [-27, -31];
+    const heap = new THREE.SphereGeometry(1, 48, 28), hp = heap.attributes.position;
+    for (let k = 0; k < hp.count; k++) {
+      const x = hp.getX(k), y = hp.getY(k), z = hp.getZ(k), d = 1 + 0.08 * wob(x * 1.6 + 0.3, y * 1.6, z * 1.6 + 0.7);
+      hp.setXYZ(k, x * 7.2 * U * d, Math.max(0, y) * 3.0 * U * d + 0.002, z * 6.0 * U * d);
+    }
+    heap.translate(...V(W[0], W[1], 0).toArray());
+    const uvh = heap.attributes.uv; for (let k = 0; k < uvh.count; k++) uvh.setXY(k, uvh.getX(k) * 6, uvh.getY(k) * 3);
+    finish(heap);
+    const band = new THREE.Mesh(new THREE.TorusGeometry(6.2 * U, 0.75 * U, 10, 64), denim);
+    band.scale.set(1, 0.6, 1); band.rotation.set(Math.PI / 2 - 0.38, 0.25, 0.4); band.position.copy(V(W[0] - 1.5, W[1] + 1.2, 2.4));
+    band.castShadow = band.receiveShadow = true; room.add(band);
+    leg([[W[0], W[1], 2.0], [-19, -33, 1.2], [-12, -36.5, 1.1], [-13, -41.5, 1.2], [-20, -41, 2.5], [-26.5, -38.5, 2.9]], 3.8, 3.0, 1.3);  // folds back over itself
+    leg([[W[0], W[1], 2.0], [-34, -34, 1.2], [-36.5, -39.5, 1.1], [-31.5, -44, 1.05], [-23, -45, 1.1]], 3.8, 2.9, 4.1);
   }
   // (pendant removed 2026-11-03: above the frame once the camera moved back, and it cast an unexplained shadow)
 
