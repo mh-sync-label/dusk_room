@@ -37,12 +37,11 @@ h1 { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; lett
 .reading #c.over-folder, .reading #c { cursor: zoom-out; }
 .status { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(236,236,230,0.75); font-size: 0.95rem; pointer-events: none; text-align: center; padding: 24px; }
 .status[hidden] { display: none; }
-.devbar { position: absolute; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; max-width: calc(100% - 200px); z-index: 3; }
+.devbar { display: flex; flex-wrap: wrap; gap: 8px; }   /* a row under the scene, so it never covers it and shows at any width */
 .devbar .group { background: rgba(28,29,26,0.86); border-color: rgba(255,255,255,0.08); }
 .devbar button { color: #ecebe6; } .devbar .group .lbl { color: #a2a39b; }
 .devbar button:hover { background: rgba(255,255,255,0.1); }
 .embed .devbar { display: none; }
-@media (max-width: 720px) { .devbar { display: none; } }
 .dock { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: flex-end; pointer-events: none; }
 .group { pointer-events: auto; display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--chip); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
 .group .lbl { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 6px 6px 6px 8px; align-self: center; }
@@ -74,7 +73,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 <div class="wrap">
   <header>
     <h1>Desk and Folder</h1>
-    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v7</p>
+    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v8</p>
   </header>
   <div class="stage" id="stage">
     <canvas id="c" aria-label="A light-oak writing desk in a quiet greyscale room, with tonight's poem on loose sheets in an open folder, and a window to the night. Click the folder to read it."></canvas>
@@ -82,24 +81,24 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     <div class="hint" id="hint">Click the folder to read</div>
     <button class="readlink" id="readLink" type="button">Read tonight's poem</button>
     <div class="progress" id="progress" aria-hidden="true"><i id="progressFill"></i></div>
+  </div>
     <!-- review toolbar (2026-11-04), as on the Endcap viewer: for working on the scene, hidden in the website embed -->
-    <div class="devbar" id="devbar">
-      <div class="group" role="group" aria-label="Camera view">
-        <span class="lbl">View</span>
-        <button data-view="room" aria-pressed="true">Room</button>
-        <button data-view="hero" aria-pressed="false">Hero</button>
-        <button data-view="desk" aria-pressed="false">Desk</button>
-        <button data-view="top" aria-pressed="false">Top</button>
-        <button data-view="window" aria-pressed="false">Window</button>
-        <button data-view="folder" aria-pressed="false">Read</button>
-        <button id="orbitBtn" aria-pressed="false">Orbit</button>
-        <button id="snapBtn">Save image</button>
-      </div>
-      <div class="group" role="group" aria-label="Room palette">
-        <span class="lbl">Room</span>
-        <button data-palette="grey" aria-pressed="true">Grey</button>
-        <button data-palette="green" aria-pressed="false">Green</button>
-      </div>
+  <div class="devbar" id="devbar">
+    <div class="group" role="group" aria-label="Camera view">
+      <span class="lbl">View</span>
+      <button data-view="room" aria-pressed="true">Room</button>
+      <button data-view="hero" aria-pressed="false">Hero</button>
+      <button data-view="desk" aria-pressed="false">Desk</button>
+      <button data-view="top" aria-pressed="false">Top</button>
+      <button data-view="window" aria-pressed="false">Window</button>
+      <button data-view="folder" aria-pressed="false">Read</button>
+      <button id="orbitBtn" aria-pressed="false">Orbit</button>
+      <button id="snapBtn">Save image</button>
+    </div>
+    <div class="group" role="group" aria-label="Room palette">
+      <span class="lbl">Room</span>
+      <button data-palette="grey" aria-pressed="true">Grey</button>
+      <button data-palette="green" aria-pressed="false">Green</button>
     </div>
   </div>
   <p class="poem-meta" id="poemMeta"></p>
