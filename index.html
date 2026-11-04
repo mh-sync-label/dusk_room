@@ -82,7 +82,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 <div class="wrap">
   <header>
     <h1>Desk and Folder</h1>
-    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v15</p>
+    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v16</p>
   </header>
   <div class="stage" id="stage">
     <canvas id="c" aria-label="A light-oak writing desk in a quiet greyscale room, with tonight's poem on loose sheets in an open folder, and a window to the night. Click the folder to read it."></canvas>
@@ -196,7 +196,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   const ROOM_MATS = [];
   const grey = (v, r, m) => { const x = new THREE.MeshStandardMaterial({ color: tone(v), roughness: r === undefined ? 0.8 : r, metalness: m || 0 }); x.envMapIntensity = ENV_ROOM; ROOM_MATS.push([x, v]); return x; };
   function setPalette(name) { tone = PALETTES[name] || PALETTES.grey; ROOM_MATS.forEach(([x, v]) => x.color.setHex(tone(v))); return name; }
-  const G = { cabDoor: grey(0.28, 0.5), wall: grey(0.93, 0.9), floor: grey(0.40, 0.7), trim: grey(0.9, 0.6), cab: grey(0.24, 0.55), slot: grey(0.06, 0.6),
+  const G = { cabDoor: grey(0.28, 0.5), wall: grey(0.93, 0.9), floor: grey(0.40, 0.7), trim: grey(0.9, 0.6), cab: grey(0.24, 0.55), slot: grey(0.06, 0.6), sash: grey(0.1, 0.45), casing: grey(0.74, 0.55),
               chair: grey(0.09, 0.45), shell: grey(0.16, 0.5), metal: grey(0.7, 0.3, 0.9), lamp: grey(0.08, 0.45), lampIn: grey(0.95, 0.5),
               bookD: grey(0.16, 0.7), bookL: grey(0.86, 0.7), ceramic: grey(0.94, 0.35) };
   function B(sx, sy, sz, x, y, z, m, rz, parent) {
@@ -213,16 +213,31 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   B(1200, 400, 1, 300, -200, RH + 0.5, G.wall);   // ceiling, out of frame; stops at the back wall so moonlight reaches the window
   B(1, 400, RH, 128, -200, RH / 2, G.wall);       // right wall, out of frame: closes the room so light enters only by the window
   // back wall with a window opening to the right of the nook (x 66-102, z 34-88); the room view shows only its left edge
-  const WX0 = 60, WX1 = 96, WZ0 = 34, WZ1 = 88, WL = LX - 30, WR = RX + 400;   // wall runs well past the frame so moonlight enters only by the window
+  const WX0 = 62, WX1 = 96, WZ0 = 30, WZ1 = 92, WL = LX - 30, WR = RX + 400;   // wall runs well past the frame so moonlight enters only by the window
   B(WX0 - WL, 1, RH, (WL + WX0) / 2, 0.5, RH / 2, G.wall);
   B(WR - WX1, 1, RH, (WX1 + WR) / 2, 0.5, RH / 2, G.wall);
   B(WX1 - WX0, 1, WZ0, (WX0 + WX1) / 2, 0.5, WZ0 / 2, G.wall);
   B(WX1 - WX0, 1, RH - WZ1, (WX0 + WX1) / 2, 0.5, (WZ1 + RH) / 2, G.wall);
-  B(2.5, 0.9, WZ1 - WZ0 + 5, WX0 - 1.25, -0.45, (WZ0 + WZ1) / 2 + 0.5, G.trim);          // left casing
-  B(WX1 - WX0 + 5, 0.9, 2.5, (WX0 + WX1) / 2, -0.45, WZ1 + 1.25, G.trim);               // head casing
-  B(WX1 - WX0 + 6, 3.2, 1.1, (WX0 + WX1) / 2, -1.2, WZ0 - 0.55, G.trim);                // sill
-  B(1.6, 1.4, WZ1 - WZ0, WX0 + 0.8, 0.5, (WZ0 + WZ1) / 2, G.trim);                      // sash stile
-  B(1.4, 1.4, WZ1 - WZ0, (WX0 + WX1) / 2, 0.5, (WZ0 + WZ1) / 2, G.trim);                // centre mullion
+  // double-hung window after Maxx's reference (2026-11-04): a six-pane upper sash over a single-pane lower sash, slim
+  // dark sash frames, and a wide flat casing with a deep stool and an apron. Casing a shade darker than the walls, sashes in the dark tone.
+  { const CW = 4.5, CP = 0.9, mid = (WX0 + WX1) / 2, cz = (WZ0 + WZ1) / 2;
+    B(CW, CP, WZ1 - WZ0 + 1, WX0 - CW / 2, -CP / 2, cz + 0.5, G.casing);                         // side casings
+    B(CW, CP, WZ1 - WZ0 + 1, WX1 + CW / 2, -CP / 2, cz + 0.5, G.casing);
+    B(WX1 - WX0 + 2 * CW + 1.5, CP + 0.3, 5.5, mid, -(CP + 0.3) / 2, WZ1 + 2.75 + 0.5, G.casing);  // head casing
+    B(WX1 - WX0 + 2 * CW + 2.5, 4.2, 1.1, mid, -1.4, WZ0 - 0.55, G.casing);                      // stool (deep sill)
+    B(WX1 - WX0 + 2 * CW, CP, 4.2, mid, -CP / 2, WZ0 - 1.1 - 2.1, G.casing);                      // apron
+    const SW = WX1 - WX0, SH = (WZ1 - WZ0) / 2 + 0.6, S = 1.8;                                  // sash width, height, frame member
+    const sash = (z0, y, panesX, panesY, bottomRail) => {
+      B(S, 1.3, SH, WX0 + S / 2, y, z0 + SH / 2, G.sash); B(S, 1.3, SH, WX1 - S / 2, y, z0 + SH / 2, G.sash);   // stiles
+      B(SW, 1.3, S, mid, y, z0 + SH - S / 2, G.sash); B(SW, 1.3, bottomRail, mid, y, z0 + bottomRail / 2, G.sash);   // rails
+      const gx0 = WX0 + S, gx1 = WX1 - S, gz0 = z0 + bottomRail, gz1 = z0 + SH - S;
+      for (let k = 1; k < panesX; k++) B(0.6, 0.9, gz1 - gz0, gx0 + (gx1 - gx0) * k / panesX, y, (gz0 + gz1) / 2, G.sash);   // muntins
+      for (let k = 1; k < panesY; k++) B(gx1 - gx0, 0.9, 0.6, mid, y, gz0 + (gz1 - gz0) * k / panesY, G.sash);
+    };
+    sash(WZ1 - SH, 1.4, 3, 2, 1.6);      // upper sash, outer track: six panes
+    sash(WZ0, 0.2, 1, 1, 2.6);           // lower sash, inner track: one pane, heavier bottom rail
+    B(SW, 0.6, 1.2, mid, -0.05, WZ0 + 0.6 + 2.6 + 0.4, G.slot);                                  // a small sash lift
+  }
   // night sky beyond the glass, with the glow of a moon just out of frame (up and to the right)
   const skyC = document.createElement('canvas'); skyC.width = 512; skyC.height = 768;
   { const g = skyC.getContext('2d');
