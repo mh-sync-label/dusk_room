@@ -73,7 +73,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 <div class="wrap">
   <header>
     <h1>Desk and Folder</h1>
-    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v10</p>
+    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v11</p>
   </header>
   <div class="stage" id="stage">
     <canvas id="c" aria-label="A light-oak writing desk in a quiet greyscale room, with tonight's poem on loose sheets in an open folder, and a window to the night. Click the folder to read it."></canvas>
@@ -316,8 +316,8 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     // denim texture: indigo twill, faded streaks, and a stitched seam line (texture y runs around the leg)
     const dc = document.createElement('canvas'); dc.width = 512; dc.height = 512;
     { const g = dc.getContext('2d');
-      g.fillStyle = '#c4c4c4'; g.fillRect(0, 0, 512, 512);
-      for (let i = -512; i < 1024; i += 3) { g.strokeStyle = (i / 3) % 2 ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.16)'; g.lineWidth = 1.4;
+      g.fillStyle = '#f2f2f2'; g.fillRect(0, 0, 512, 512);   // near-white, so the palette tone reads true
+      for (let i = -512; i < 1024; i += 3) { g.strokeStyle = (i / 3) % 2 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)'; g.lineWidth = 1.4;
         g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 512, 512); g.stroke(); }                     // twill
       for (let k = 0; k < 900; k++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '0,0,0'},${Math.random() * 0.08})`;
         g.fillRect(Math.random() * 512, Math.random() * 512, 6 + Math.random() * 40, 1 + Math.random() * 2); }   // slub and fading
@@ -329,7 +329,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     }
     const dtex = new THREE.CanvasTexture(dc); dtex.encoding = THREE.sRGBEncoding; dtex.wrapS = dtex.wrapT = THREE.RepeatWrapping;
     dtex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    const denim = grey(0.52, 0.96);                       // a mid tone: darker than the walls, lighter than the cabinets
+    const denim = grey(0.93, 0.96);                       // the walls' tone (Maxx, 2026-11-04)
     denim.map = dtex; denim.bumpMap = dtex; denim.bumpScale = 0.0006;
     // a tossed-down pile (revised 2026-11-04): no modelled legs or waistband, just a low, wide crumple of a few
     // overlapping folded layers with soft ridges and one loose flap, like clothing dropped on the floor
