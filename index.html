@@ -54,12 +54,11 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 .callout-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; transition: opacity .35s; overflow: visible; }
 .callout-lines line { stroke: rgba(35,36,31,0.55); stroke-width: 1; }
 .callout-lines circle { fill: #fff; stroke: rgba(35,36,31,0.7); stroke-width: 0.8; }
-.callout { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap;
-  padding: 1px 6px 2px 5px; border-radius: 99px; background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.08);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.1); font-size: 0.64rem; color: #23241f; transition: opacity .35s; }
-.callout .k { font-size: 0.48rem; letter-spacing: 0.08em; text-transform: uppercase; color: #8a6a44; }
-.callout .v { font-family: "EB Garamond", Garamond, Georgia, serif; font-size: 0.72rem; }
-.callout.coll .v { font-style: italic; }
+.callout { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; display: inline-flex; align-items: baseline; gap: 3.75px; white-space: nowrap;
+  padding: 0.75px 4.5px 1.5px 3.75px; border-radius: 99px; background: rgba(255,255,255,0.92); border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 1px 5px rgba(0,0,0,0.1); font-size: 0.48rem; color: #23241f; transition: opacity .35s; }
+.callout .k { font-size: 0.36rem; letter-spacing: 0.08em; text-transform: uppercase; color: #8a6a44; }
+.callout .v { font-family: "EB Garamond", Garamond, Georgia, serif; font-size: 0.54rem; }
 .callout[hidden], .callout-lines.off { display: none; }
 .readlink { position: absolute; left: 14px; bottom: 12px; padding: 3px 0; border-radius: 0; background: none; font-size: 0.86rem; font-weight: 500;
   color: rgba(236,236,230,0.92); border-bottom: 1px solid rgba(236,236,230,0.4); text-shadow: 0 1px 3px rgba(0,0,0,0.7); z-index: 2; }
@@ -83,7 +82,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 <div class="wrap">
   <header>
     <h1>Desk and Folder</h1>
-    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v14</p>
+    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v15</p>
   </header>
   <div class="stage" id="stage">
     <canvas id="c" aria-label="A light-oak writing desk in a quiet greyscale room, with tonight's poem on loose sheets in an open folder, and a window to the night. Click the folder to read it."></canvas>
@@ -92,7 +91,7 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     <button class="readlink" id="readLink" type="button">Read tonight's poem</button>
     <div class="progress" id="progress" aria-hidden="true"><i id="progressFill"></i></div>
     <!-- floating callouts (2026-11-04), like the Endcap's dimension bubbles: the poem's author and, when known, its collection -->
-    <svg class="callout-lines" id="calloutLines" aria-hidden="true"><line id="lineA"/><line id="lineB"/><circle id="dotA" r="1.8"/><circle id="dotB" r="1.8"/></svg>
+    <svg class="callout-lines" id="calloutLines" aria-hidden="true"><line id="lineA"/><line id="lineB"/><circle id="dotA" r="1.35"/><circle id="dotB" r="1.35"/></svg>
     <div class="callout" id="calloutA"><span class="k">Author</span><span class="v" id="calloutAuthor"></span></div>
     <div class="callout" id="calloutB"><span class="k">From</span><span class="v" id="calloutCollection"></span></div>
   </div>
@@ -660,11 +659,11 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
     pv.copy(calloutAnchors[0]).project(camera);
     const ax = (pv.x + 1) / 2 * w, ay = (1 - pv.y) / 2 * h, ok = pv.z < 1;
     const top = CA.hidden ? CB : CA, bw = Math.max(CA.hidden ? 0 : CA.offsetWidth, CB.hidden ? 0 : CB.offsetWidth);
-    const bh = top.offsetHeight, stackH = bh + (CA.hidden || CB.hidden ? 0 : CB.offsetHeight + 3);
+    const bh = top.offsetHeight, stackH = bh + (CA.hidden || CB.hidden ? 0 : CB.offsetHeight + 2.25);
     let lx = ax - Math.min(80, w * 0.07) - bw, ly = ay - Math.min(64, h * 0.11) - bh / 2;
     lx = Math.max(8, Math.min(w - bw - 8, lx)); ly = Math.max(8, Math.min(h - stackH - 8, ly));
     if (!CA.hidden) CA.style.transform = `translate(${(lx + bw - CA.offsetWidth).toFixed(1)}px, ${ly.toFixed(1)}px)`;
-    if (!CB.hidden) CB.style.transform = `translate(${(lx + bw - CB.offsetWidth).toFixed(1)}px, ${(CA.hidden ? ly : ly + bh + 3).toFixed(1)}px)`;
+    if (!CB.hidden) CB.style.transform = `translate(${(lx + bw - CB.offsetWidth).toFixed(1)}px, ${(CA.hidden ? ly : ly + bh + 2.25).toFixed(1)}px)`;
     lineA.setAttribute('x1', ax); lineA.setAttribute('y1', ay); lineA.setAttribute('x2', lx + bw); lineA.setAttribute('y2', ly + bh / 2);
     dotA.setAttribute('cx', ax); dotA.setAttribute('cy', ay);
     [lineA, dotA].forEach(n => n.setAttribute('visibility', ok ? 'visible' : 'hidden'));
