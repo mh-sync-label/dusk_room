@@ -232,6 +232,43 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
   B(12.2, 0.9, 2, 0, 5.8, 16.2, G.shell, 0, chair); B(12.2, 0.9, 2, 0, -5.8, 16.2, G.shell, 0, chair);      // front and back rails
   B(0.9, 11, 2, 6.4, 0, 16.2, G.shell, 0, chair); B(0.9, 11, 2, -6.4, 0, 16.2, G.shell, 0, chair);          // side rails
   chair.position.set((DX + 36) * U, 0, 34 * U); chair.rotation.y = 205 * Math.PI / 180;
+  // brass floor lamp (2026-11-03, after Maxx's reference): ring base, slim pole bending into an arm, and a tapered black
+  // shade on a small knuckle. It stands in the gap between the pedestal and the desk, reaching over the desk's left
+  // end, and is switched on: a warm glow inside the shade and a soft pool of light on the desk. In colour (brass), not
+  // greyscale, so it reads as brass.
+  {
+    const V = (x, y, z) => new THREE.Vector3(x * U, z * U, -y * U);       // Blender inches -> three metres
+    const brass = new THREE.MeshStandardMaterial({ color: 0x9c7340, metalness: 0.9, roughness: 0.38 }); brass.envMapIntensity = 0.8;   // antique brass
+    const add = (geo, m) => { const o = new THREE.Mesh(geo, m); o.castShadow = o.receiveShadow = true; room.add(o); return o; };
+    const RX0 = -28.6, RY0 = -10, RR = 5.4;                              // ring base centre and radius
+    const ring = add(new THREE.TorusGeometry(RR * U, 0.34 * U, 16, 96), brass);
+    ring.rotation.x = Math.PI / 2; ring.position.copy(V(RX0, RY0, 0.34));
+    const PX = RX0 - 1.2, PY = RY0 + RR * 0.97;                          // the pole rises from the ring's back edge
+    add(new THREE.CylinderGeometry(0.42 * U, 0.42 * U, 2.2 * U, 24), brass).position.copy(V(PX, PY, 1.3));   // collar
+    const path = new THREE.CatmullRomCurve3([V(PX, PY, 0.5), V(PX, PY, 40), V(PX, PY, 55.5), V(PX + 0.6, PY - 0.3, 58.2),
+      V(PX + 2.6, PY - 1.2, 59.2), V(PX + 10, PY - 4.2, 59.8), V(PX + 16.5, PY - 6.6, 60.2)], false, 'centripetal');
+    add(new THREE.TubeGeometry(path, 160, 0.3 * U, 16, false), brass);
+    const tip = V(PX + 16.5, PY - 6.6, 60.2);
+    add(new THREE.SphereGeometry(0.55 * U, 20, 14), brass).position.copy(tip);                  // knuckle
+    const stem = add(new THREE.CylinderGeometry(0.28 * U, 0.4 * U, 2.6 * U, 20), brass); stem.position.copy(tip).add(V(0, 0, -1.4));
+    // tapered shade, tilted a little toward the desk; black outside, warm and glowing inside
+    const shade = new THREE.Group(); shade.position.copy(tip).add(V(0.4, -0.2, -6.4));
+    shade.rotation.z = -12 * Math.PI / 180; shade.rotation.x = 6 * Math.PI / 180; room.add(shade);
+    const sg = new THREE.CylinderGeometry(3.5 * U, 5.6 * U, 7.6 * U, 64, 1, true);
+    const outerMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1, side: THREE.FrontSide }); outerMat.envMapIntensity = 0.1;
+    const outer = new THREE.Mesh(sg, outerMat);
+    const inner = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: 0x3a2a18, emissive: 0xffb873, emissiveIntensity: 0.9, roughness: 0.9, side: THREE.BackSide }));
+    outer.castShadow = true; shade.add(outer, inner);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(1.1 * U, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }));
+    bulb.position.y = 0.6 * U; shade.add(bulb);
+    // the lamp's light: a warm spot from inside the shade onto the desk
+    const lampLight = new THREE.SpotLight(0xffc68a, 3.2, 3.2, 44 * Math.PI / 180, 0.75, 1.4);
+    lampLight.position.set(0, -0.5 * U, 0); shade.add(lampLight);
+    const lt = new THREE.Object3D(); lt.position.copy(V(-15, -11, 30));   // the pool falls on the desk's left end, not on the poem room.add(lt); lampLight.target = lt;
+    lampLight.castShadow = true; lampLight.shadow.mapSize.set(1024, 1024); lampLight.shadow.radius = 6; lampLight.shadow.bias = -0.0008;
+    lampLight.shadow.camera.near = 0.05; lampLight.shadow.camera.far = 3;
+    const glow = new THREE.PointLight(0xffc68a, 0.5, 1.6, 2); glow.position.set(0, -1 * U, 0); shade.add(glow);   // soft fill around the lamp
+  }
   // (pendant removed 2026-11-03: above the frame once the camera moved back, and it cast an unexplained shadow)
 
   // ---------- tonight's sheet: built here so its length follows the poem (2026-11-03) ----------
