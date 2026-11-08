@@ -23,10 +23,10 @@ h1 { margin: 0; font-weight: 500; font-size: 28px; letter-spacing: -0.01em; }
 .card h2 { margin: 0; font-size: 16px; font-weight: 600; }
 .card h2 small { font-weight: 400; color: var(--faint); font-size: 13px; margin-left: 6px; }
 .card p { margin: 0; color: var(--soft); font-size: 13.5px; }
-.row { display: grid; grid-template-columns: 72px minmax(0, 1fr) 150px; gap: 12px; align-items: center; }
+.row { display: grid; grid-template-columns: 72px 76px minmax(0, 1fr); gap: 12px; align-items: center; }
 .spec { height: 72px; display: grid; place-items: center; background: var(--tile); border-radius: 8px; overflow: hidden; }
 .spec svg { width: 64px; height: 64px; }
-.actual { height: 72px; display: flex; align-items: center; padding-left: 8px; border: 1px solid var(--line); border-radius: 8px; }
+.actual { height: 72px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; }
 .big { height: 150px; background: var(--tile); border-radius: 8px; display: grid; place-items: center; }
 .current { border-color: #c9c9c4; }
 svg { display: block; overflow: visible; }
