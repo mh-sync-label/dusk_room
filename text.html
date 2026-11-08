@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tonight's Poem · Text</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Instrument+Sans:wght@500&display=swap">
+<style>
+/* one sheet of paper on the room's night ground; the same type as the sheet in the 3D room */
+:root {
+  --night: #14161b; --paper: #ffffff; --ink: #1b1b1b; --soft: #55575b; --faint: #8b8378; --label: rgba(236,235,230,0.62);
+  --serif: "EB Garamond", Garamond, "Times New Roman", serif; --ui: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--night); color: var(--ink); font-family: var(--serif);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(28px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px)); }
+main { max-width: 34em; margin: 0 auto; }
+.night { margin: 0 0 14px; font: 500 0.68rem/1.4 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--label); }
+.night:empty { display: none; }
+article { background: var(--paper); border-radius: 2px; padding: clamp(24px, 6vw, 44px) clamp(22px, 6vw, 48px) clamp(30px, 7vw, 52px);
+  box-shadow: 0 1px 1px rgba(0,0,0,.25), 0 14px 40px -14px rgba(0,0,0,.6); }
+h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75rem); line-height: 1.2; text-wrap: balance; }
+.author { margin: 0; font-style: italic; font-size: 1.08rem; color: var(--soft); }
+.from { margin: .25em 0 0; font-size: .95rem; color: var(--faint); }
+.lines { margin: 1.4em 0 0; white-space: pre-wrap; font-size: clamp(1.06rem, 3.6vw, 1.17rem); line-height: 1.55; overflow-wrap: break-word; }
+@media (prefers-reduced-motion: no-preference) { article { animation: rise .6s ease-out both; } @keyframes rise { from { opacity: 0; transform: translateY(6px); } } }
+</style>
+</head>
+<body>
+<main>
+  <p class="night" id="night"></p>
+  <article aria-labelledby="t">
+    <h1 id="t">Sabbaths 2014, III</h1>
+    <p class="author" id="a">Wendell Berry</p>
+    <p class="from" id="f">from <i>Another Day: Sabbath Poems, 2013–2023</i></p>
+    <p class="lines" id="l">You don’t know the day until
+You’ve seen the last of it
+Reddening the hill
+And rising into night</p>
+  </article>
+</main>
+<script>
+(function () {
+  var PHASES = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+  function night(p) {                       // the same date and phase line as the sheet in the room
+    var d = p.date ? new Date(p.date + 'T21:00:00') : new Date();
+    var age = ((d.getTime() / 86400000 + 2440587.5 - 2451550.1) % 29.530588853 + 29.530588853) % 29.530588853;
+    var phase = p.phase || PHASES[Math.floor((age / 29.530588853) * 8 + 0.5) % 8];
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + phase;
+  }
+  function show(p) {
+    document.getElementById('night').textContent = night(p);
+    document.getElementById('t').textContent = p.title;
+    document.getElementById('a').textContent = p.author;
+    var f = document.getElementById('f'); f.innerHTML = '';
+    if (p.collection) { f.append('from '); var i = document.createElement('i'); i.textContent = p.collection; f.append(i); }
+    if (p.year) f.append((p.collection ? ' · ' : '') + p.year);
+    f.hidden = !(p.collection || p.year);
+    document.getElementById('l').textContent = (p.lines || []).join('\n');
+  }
+  var baked = {"title": "Sabbaths 2014, III", "author": "Wendell Berry", "lines": ["You don’t know the day until", "You’ve seen the last of it", "Reddening the hill", "And rising into night"], "collection": "Another Day: Sabbath Poems, 2013–2023"};
+  show(baked);
+  try { fetch('poem.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (p) { if (p && p.title && p.lines) show(p); }).catch(function () {}); } catch (e) {}
+})();
+</script>
+</body>
+</html>
