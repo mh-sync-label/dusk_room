@@ -10,7 +10,7 @@
 /* Tonight's Notturno moon for the /notturno site logo (2026-11-08): "B4 · True to the scan" disc with "N7 · Counted" n's,
    chosen by Maxx. The dark part of tonight's Moon is a stipple of ~1100 tiny vector dots, denser toward the edge, with
    pale flecks near the limb like his scanned moons. The number of n's is the phase (lit share x 12), set evenly just
-   outside the lit edge and nudged by hand-like jitter; on a new moon one outlined n sits in a small clearing in the disc.
+   outside the lit edge and nudged by hand-like jitter; a new moon is the disc alone, a full moon the ring of n's alone.
    Nothing loads in (Maxx); every 20 s one n fades out and back. Transparent; the SVG fills the frame.
    ?phase=0..1 previews a phase (0 new, .5 full). ?home=0 drops the home link. Reduced motion: no fading. */
 html, body { margin: 0; height: 100%; background: transparent; }
@@ -61,15 +61,10 @@ a:focus-visible { outline: 1px solid #555; outline-offset: -2px; }
         'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#141414' }, svg);
       t.textContent = 'n'; ns.push(t);
     }
-  } else {
-    el('circle', { cx: c, cy: c, r: 3.9, fill: '#ffffff' }, svg);         // a small clearing in the grain
-    var h = el('text', { x: c, y: c, 'font-size': 7.5, 'font-family': FONT, 'text-anchor': 'middle', 'dominant-baseline': 'central',
-      fill: 'none', stroke: '#141414', 'stroke-width': 0.4 }, svg);
-    h.textContent = 'n'; ns.push(h);
-  }
+  }   // a new moon is the grain disc alone, with no n (Maxx)
 
   // every 20 s, one n fades out and back over 1.5 s
-  if (!REDUCE) {
+  if (!REDUCE && ns.length) {
     var t0 = performance.now(), cyc = -1, pick = null;
     (function tick(now) {
       var e = now - t0, cc = Math.floor(e / 20000), tc = e % 20000;
