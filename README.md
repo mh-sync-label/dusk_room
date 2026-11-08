@@ -15,7 +15,12 @@ and takes over on its own if the 3D scene cannot run.
   `POEM` constant near the top of the text-view script) so the page is never empty while it loads.
 - `text.html`: the poem alone, as a plain page, for a direct link.
 - Embedding: the page detects when it is inside an iframe and fills the frame edge to edge; `?embed=1` forces the same.
-  `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console.
+  `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
+  time (ms per frame and fps, averaged over the last second), the shadow-map rate, and the pixel ratio in the stage's
+  corner; the same numbers are at `DuskRoom.perf`.
+- Rendering cost: the shadow maps are redrawn every other frame while the room is still and every third while the camera
+  is moving (they are drawn from the lights, so the camera's moves do not change them); the renderer asks for the
+  high-performance GPU on two-GPU machines.
 
 ## State
 

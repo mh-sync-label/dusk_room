@@ -398,7 +398,7 @@ async function buildRoom(DUST) {
   // ---------- renderer: the Endcap's approved colour look ----------
   const canvas = document.getElementById('c');
   let renderer;
-  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: VATH }); }
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: VATH, powerPreference: 'high-performance' }); }   // a two-GPU laptop: the discrete one
   catch (e) { toText('This browser could not start the 3D scene.'); console.error(e); return; }
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); toText('The 3D scene stopped (the browser gave up its graphics context).'); }, { once: true });
   // phones and small frames: a lighter pixel ratio and shadow maps, since memory, not detail, is what fails there
@@ -410,6 +410,12 @@ async function buildRoom(DUST) {
   renderer.toneMappingExposure = 0.82;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;           // PCF honours shadow.radius: soft, faint shadows as on the Endcap
+  // The shadow maps are the frame's biggest cost (three of them, one 4096 square, each redrawn with the whole room including
+  // the displaced brick wall) and they are drawn from the lights, not the camera, so the camera's moves do not change them.
+  // What does change them is the slow sway of curtains, plant and sheet, which reads the same at half rate. So: every other
+  // frame while the room is still, every third while the camera is on its way to or from the sheet (the stutter-prone moment).
+  renderer.shadowMap.autoUpdate = false;
+  let shadowFrame = 0;
 
   const scene = new THREE.Scene();
   scene.background = VATH ? null : new THREE.Color(0x14161b);
@@ -2359,9 +2365,24 @@ async function buildRoom(DUST) {
   const side = new THREE.Vector3(), upv = new THREE.Vector3();
   // the stage scrolled out of view (a long host page), or the text showing: the room is left as it is
   if (window.IntersectionObserver) new IntersectionObserver(([en]) => D.set({ visible: en.isIntersecting }), { threshold: 0 }).observe(document.getElementById('stage'));
+  // ?debug=1: frame time in the stage's corner, averaged over the last second, with the shadow rate and pixel ratio
+  const PERF = D.perf = { frameMs: 0, fps: 0, shadowEvery: 2 };
+  let perfEl = null, perfAcc = 0, perfN = 0, perfLast = 0;
+  if (/[?&]debug=1/.test(location.search)) { perfEl = document.createElement('div'); perfEl.id = 'perf'; perfEl.setAttribute('aria-hidden', 'true');
+    perfEl.style.cssText = 'position:absolute;right:10px;top:8px;z-index:9;font:500 11px/1.4 "Instrument Sans",monospace;letter-spacing:.04em;color:#ecebe6;background:rgba(20,22,27,.72);padding:4px 8px;border-radius:6px;pointer-events:none;white-space:pre';
+    document.getElementById('stage').appendChild(perfEl); }
+  function perf(now) {
+    if (perfLast) { perfAcc += now - perfLast; perfN++; }
+    perfLast = now;
+    if (perfAcc >= 1000) { PERF.frameMs = perfAcc / perfN; PERF.fps = 1000 / PERF.frameMs; perfAcc = 0; perfN = 0;
+      if (perfEl) perfEl.textContent = PERF.frameMs.toFixed(1) + ' ms/frame  ' + PERF.fps.toFixed(0) + ' fps\nshadows 1/' + PERF.shadowEvery + '  dpr ' + renderer.getPixelRatio() + '  ' + renderer.domElement.width + 'x' + renderer.domElement.height; }
+  }
   function tick(now) {
-    if (!S.visible || S.panel === 'text') { requestAnimationFrame(tick); return; }   // nothing to draw
+    if (!S.visible || S.panel === 'text') { perfLast = 0; requestAnimationFrame(tick); return; }   // nothing to draw
+    perf(now);
     resize();
+    PERF.shadowEvery = S.moving ? 3 : 2;
+    renderer.shadowMap.needsUpdate = shadowFrame++ % PERF.shadowEvery === 0;   // the first frame always draws them
     EVERY_FRAME.forEach(f => f(now));
     if (VCAM) {                                              // one fixed view: no zoom, parallax or drift
       camera.position.copy(VCAM.pos); camera.quaternion.copy(VCAM.q); camera.updateMatrixWorld(); applyVProj();
