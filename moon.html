@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notturno · Tonight's Moon</title>
+<style>
+/* the Notturno moon logo for tonight's phase, to embed in place of the site logo on /notturno (2026-11-08).
+   Transparent, so the site's own background shows; the logo fills the frame, centred. ?home=0 drops the home link. */
+html, body { margin: 0; height: 100%; background: transparent; }
+a, .m { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+img { width: 100%; height: 100%; object-fit: contain; display: block; }
+a:focus-visible { outline: 1px solid #555; outline-offset: -2px; }
+</style>
+</head>
+<body>
+<a id="home" href="https://www.maxxhillery.com/" target="_top" aria-label="Home"><img id="moon" src="moon/moon1.png" alt="Notturno moon logo"></a>
+<script>
+(function () {
+  // the same phase reckoning as the room: tonight at 9 pm, days since a known new moon, eight phases
+  var NAMES = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+  var d = new Date(); d.setHours(21, 0, 0, 0);
+  var age = ((d.getTime() / 86400000 + 2440587.5 - 2451550.1) % 29.530588853 + 29.530588853) % 29.530588853;
+  var i = Math.floor(age / 29.530588853 * 8 + 0.5) % 8;
+  var img = document.getElementById('moon');
+  img.src = 'moon/moon' + (i + 1) + '.png';
+  img.alt = 'Notturno moon logo: ' + NAMES[i].toLowerCase() + ' tonight';
+  if (/[?&]home=0/.test(location.search)) { var a = document.getElementById('home'); a.removeAttribute('href'); a.removeAttribute('aria-label'); a.className = 'm'; }
+})();
+</script>
+</body>
+</html>
