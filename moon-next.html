@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notturno · Tonight's Moon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400&display=swap">
+<style>
+/* tonight's Notturno moon, drawn as a vector (2026-11-08, Maxx: smaller, crisper, animated). The disc is the dark part of
+   tonight's Moon; a ring of small n's orbits it, ink-dark where the Moon is lit and faint where it is dark, so the slow
+   orbit itself shows the phase. Transparent; scales to any frame. ?phase=0..1 previews a phase (0 new, .5 full).
+   ?home=0 drops the home link. Reduced motion: the ring holds still. */
+html, body { margin: 0; height: 100%; background: transparent; }
+a, .m { display: block; width: 100%; height: 100%; }
+svg { display: block; width: 100%; height: 100%; overflow: visible; }
+a:focus-visible { outline: 1px solid #555; outline-offset: -2px; }
+.n { font: 400 9px "Inter Tight", "Helvetica Neue", Arial, sans-serif; fill: #141414; text-anchor: middle; dominant-baseline: central; }
+</style>
+</head>
+<body>
+<a id="home" href="https://www.maxxhillery.com/" target="_top" aria-label="Home">
+<svg viewBox="0 0 100 100" role="img" aria-labelledby="t">
+<title id="t">Notturno moon logo</title>
+<defs>
+<mask id="dark" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+<circle cx="50" cy="50" r="24" fill="#fff"></circle>
+<path id="lit" d="" fill="#000" stroke="#000" stroke-width="0.9"></path>
+</mask>
+</defs>
+<circle cx="50" cy="50" r="24" fill="#141414" mask="url(#dark)"></circle>
+<g id="ring"></g>
+</svg>
+</a>
+<script>
+(function () {
+  var NAMES = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
+  var q = location.search, m = /[?&]phase=([0-9.]+)/.exec(q), f;   // f: fraction of the lunar cycle, 0 new, .5 full
+  if (m) f = Math.min(1, Math.max(0, parseFloat(m[1])));
+  else { var d = new Date(); d.setHours(21, 0, 0, 0);               // the same reckoning as the room: tonight at 9 pm
+    var age = ((d.getTime() / 86400000 + 2440587.5 - 2451550.1) % 29.530588853 + 29.530588853) % 29.530588853; f = age / 29.530588853; }
+  var name = NAMES[Math.floor(f * 8 + 0.5) % 8];
+  document.getElementById('t').textContent = 'Notturno moon logo: ' + name.toLowerCase() + ' tonight';
+  if (/[?&]home=0/.test(q)) { var a = document.getElementById('home'); a.removeAttribute('href'); a.removeAttribute('aria-label'); a.className = 'm'; }
+
+  // the lit part of the disc (cut from the dark disc): lit on the right while waxing, the terminator an ellipse
+  var R = 24, cx = 50, cy = 50, k = Math.cos(2 * Math.PI * f), waxing = f < 0.5, rx = Math.max(0.001, R * Math.abs(k));
+  var top = cx + ' ' + (cy - R), bot = cx + ' ' + (cy + R), litPath;
+  if (waxing) litPath = 'M' + top + ' A' + R + ' ' + R + ' 0 0 1 ' + bot + ' A' + rx + ' ' + R + ' 0 0 ' + (k > 0 ? 0 : 1) + ' ' + top + ' Z';
+  else litPath = 'M' + top + ' A' + R + ' ' + R + ' 0 0 0 ' + bot + ' A' + rx + ' ' + R + ' 0 0 ' + (k > 0 ? 1 : 0) + ' ' + top + ' Z';
+  var illum = (1 - k) / 2;
+  if (illum < 0.003) litPath = '';
+  if (illum > 0.997) litPath = 'M' + (cx - R - 1) + ' ' + (cy - R - 1) + ' h' + (2 * R + 2) + ' v' + (2 * R + 2) + ' h-' + (2 * R + 2) + ' Z';
+  document.getElementById('lit').setAttribute('d', litPath);
+
+  // the ring: twelve n's at hand-set, uneven spacing and radii, like the drawn logo
+  var BASE = [0, 27, 61, 86, 118, 149, 176, 203, 236, 262, 297, 329], DR = [0, 1.2, -0.8, 0.6, 1.4, -1, 0.3, 1.1, -0.6, 0.9, -1.2, 0.5];
+  var ring = document.getElementById('ring'), ns = BASE.map(function (b, i) {
+    var t = document.createElementNS('http://www.w3.org/2000/svg', 'text'); t.setAttribute('class', 'n'); t.textContent = 'n'; ring.appendChild(t); return t; });
+  // how lit the limb is at angle a (0 = right, degrees): the lit side's half of the limb grows dark ink with the phase;
+  // near full the far side fills in too; at new moon every n is faint
+  var side = waxing ? 1 : -1, near = Math.min(1, illum / 0.12), far = Math.max(0, (illum - 0.75) / 0.25);
+  function lit(a) {
+    var c = Math.cos(a * Math.PI / 180) * side;                 // +1 at the middle of the lit limb, -1 opposite
+    var s = Math.min(1, Math.max(0, (c + 0.15) / 0.3));         // soft edge at the top and bottom of the Moon
+    return near * s + far * (1 - s);
+  }
+  var still = matchMedia('(prefers-reduced-motion: reduce)').matches, t0 = performance.now();
+  function draw(now) {
+    var turn = still ? 0 : ((now - t0) / 1000) * 6;              // one orbit a minute
+    for (var i = 0; i < ns.length; i++) {
+      var a = BASE[i] + turn, r = 39 + DR[i], rad = a * Math.PI / 180;
+      ns[i].setAttribute('x', (cx + r * Math.cos(rad)).toFixed(2));
+      ns[i].setAttribute('y', (cy + r * Math.sin(rad)).toFixed(2));
+      ns[i].setAttribute('opacity', (0.16 + 0.84 * lit(a % 360)).toFixed(3));
+    }
+    if (!still) requestAnimationFrame(draw);
+  }
+  draw(t0);
+})();
+</script>
+</body>
+</html>
