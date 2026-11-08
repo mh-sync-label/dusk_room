@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400&display=swap">
 <style>
 /* Tonight's Notturno moon for the /notturno site logo (2026-11-08): "B4 · True to the scan" disc with "N7 · Counted" n's,
-   chosen by Maxx. The dark part of tonight's Moon is a stipple of ~1100 tiny vector dots, denser toward the edge, with
+   chosen by Maxx, with each n drawn as an Inter Tight capital U turned upside down. The dark part of tonight's Moon is a stipple of ~1100 tiny vector dots, denser toward the edge, with
    pale flecks near the limb like his scanned moons. The number of n's is the phase (lit share x 12), set evenly just
    outside the lit edge and nudged by hand-like jitter; a new moon is the disc alone, a full moon the ring of n's alone.
    Nothing loads in (Maxx); every 20 s one n fades out and back. Transparent; the SVG fills the frame.
@@ -57,9 +57,11 @@ a:focus-visible { outline: 1px solid #555; outline-offset: -2px; }
     var full = il > 0.92, dir = f < 0.5 ? 0 : 180, span = full ? 360 : 170;
     for (var p = 0; p < count; p++) {
       var ang = (dir - span / 2 + span * (p + 0.5) / count) * Math.PI / 180, px = c + (R + 4.5) * Math.cos(ang), py = c + (R + 4.5) * Math.sin(ang);
-      var t = el('text', { x: (px + (r2() - 0.5) * 2.4).toFixed(2), y: (py + (r2() - 0.5) * 2.4).toFixed(2), 'font-size': 5, 'font-family': FONT,
-        'text-anchor': 'middle', 'dominant-baseline': 'central', fill: '#141414' }, svg);
-      t.textContent = 'n'; ns.push(t);
+      // an Inter Tight capital U turned upside down (Maxx: no spur), sized to about the height of a lowercase n
+      var tx = (px + (r2() - 0.5) * 2.4).toFixed(2), ty = (py + (r2() - 0.5) * 2.4).toFixed(2);
+      var t = el('text', { x: tx, y: ty, 'font-size': 3.8, 'font-family': FONT, 'text-anchor': 'middle', 'dominant-baseline': 'central',
+        fill: '#141414', transform: 'rotate(180 ' + tx + ' ' + ty + ')' }, svg);
+      t.textContent = 'U'; ns.push(t);
     }
   }   // a new moon is the grain disc alone, with no n (Maxx)
 
