@@ -222,7 +222,7 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
   </section>
 </div>
 <script>
-(function () {   // the text view: no 3D needed. window.__showText(p) fills it; window.__toText() switches to it for good.
+(function () {   // the text view and the page's state. No 3D needed here; this runs before three.js loads.
   // Tonight's poem, baked in so the page is never empty; poem.json, fetched by the room, replaces it. The one copy on the page.
   var POEM = {"title": "Sabbaths 2014, III", "author": "Wendell Berry", "lines": ["You don’t know the day until", "You’ve seen the last of it", "Reddening the hill", "And rising into night"], "collection": "Another Day: Sabbath Poems, 2013–2023"};
   // The Moon, shared with the room: its age in days since the new moon, the phase name, and the date line on the sheet.
@@ -234,28 +234,96 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
     night: function (p) {
       var d = p.date ? new Date(p.date + 'T21:00:00') : new Date(); if (!p.date) d.setHours(21, 0, 0, 0);
       var date = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }), phase = p.phase || MOON.phaseName(MOON.age(d));
-      return { date: date, phase: phase, line: date + ' \u00b7 ' + phase };
+      return { date: date, phase: phase, line: date + ' · ' + phase };
     }
   };
   window.__POEM = POEM; window.__MOON = MOON;
-  var $ = function (id) { return document.getElementById(id); }, btn = $('textBtn'), tv = $('textView'), b = document.body;
+
+  // ---------- DuskRoom: the page's state, in one place ----------
+  // Four facts, each with a few named values, stand in for the classes, labels and flags that used to be set from a dozen places:
+  //   scene   'loading' | 'ready' | 'failed'          the 3D room's own life: being built, showing, or unable to run
+  //   panel   'scene' | 'text'                        what the reader is looking at; text is always available, and forced once the scene fails
+  //   view    'room' | 'reading' | <a review view>    where the camera is; 'reading' is on the sheet (in the Vathograph, the poem overlay)
+  //   poem    'baked' | 'tonight'                     whether poem.json has arrived or the baked copy is showing
+  // and flags: moving (the camera is between views), orbit (the review orbit), visible (the stage is on screen),
+  // longPoem (the sheet hangs over the desk, so there is something to scroll), reason (why the scene failed).
+  // Rules: panel is 'text' whenever scene is 'failed'; view can be 'reading' only once the room says the sheet exists.
+  // Every change goes through DuskRoom.set(); render() is the only code that writes these facts to the DOM (body classes,
+  // data-* attributes, labels, aria); DuskRoom.on() and the 'dusk:state' event tell the room's script, tests, or anyone
+  // else driving the page. The named transitions below are the public way to move it: DuskRoom.showText(), .showScene(),
+  // .read(), .leave(), .goTo(view), .setPoem(p). Add ?debug=1 to the URL to log every change to the console.
+  var $ = function (id) { return document.getElementById(id); }, b = document.body;
+  var copy = {   // every line of interface text, so a wording change is one edit
+    textOnly: 'Text only', backToScene: 'Return to scene',
+    read: "Read tonight's poem", back: 'Back to the room',
+    hintRoom: 'Click the folder to read', hintReading: 'Scroll to follow the page · click to return',
+    reloadHint: ' Reload the page to try again.'
+  };
+  var D = window.DuskRoom = {
+    state: { scene: 'loading', panel: 'scene', view: 'room', poem: 'baked', moving: false, orbit: false, visible: true, longPoem: false, reason: '' },
+    copy: copy,
+    canRead: false,                              // the room sets this once the sheet is built
+    listeners: [],
+    on: function (fn) { D.listeners.push(fn); return function () { D.listeners = D.listeners.filter(function (f) { return f !== fn; }); }; },
+    set: function (patch) {
+      var st = D.state, changed = [];
+      for (var k in patch) if (patch[k] !== st[k]) { st[k] = patch[k]; changed.push(k); }
+      if (st.scene === 'failed' && st.panel !== 'text') { st.panel = 'text'; changed.push('panel'); }   // the rules
+      if (st.view === 'reading' && !D.canRead) { st.view = 'room'; changed = changed.filter(function (k) { return k !== 'view'; }); }
+      if (!changed.length) return st;
+      render(changed);
+      var snap = D.snapshot();
+      D.listeners.forEach(function (fn) { try { fn(snap, changed); } catch (e) { console.error(e); } });
+      document.dispatchEvent(new CustomEvent('dusk:state', { detail: { state: snap, changed: changed } }));
+      return st;
+    },
+    snapshot: function () { var o = {}; for (var k in D.state) o[k] = D.state[k]; return o; },
+    // transitions
+    showText: function () { D.set({ panel: 'text' }); },
+    showScene: function () { if (D.state.scene !== 'failed') D.set({ panel: 'scene' }); },
+    toggleText: function () { D.state.panel === 'text' ? D.showScene() : D.showText(); },
+    sceneReady: function () { D.set({ scene: 'ready', reason: '' }); },
+    sceneFailed: function (reason) { D.set({ scene: 'failed', panel: 'text', view: 'room', moving: false, reason: reason || '' }); },
+    // the room fills these in once it exists (they are no-ops until then)
+    read: function () {}, leave: function () {}, goTo: function () {}, setPoem: function () {}, nudge: function () {}, setPalette: function () {}
+  };
+  var btn = $('textBtn'), tv = $('textView'), status = $('status'), stage = $('stage'), hint = $('hint'), readLink = $('readLink'), progress = $('progress');
+  var hideStatus = null;
+  function render(changed) {
+    var st = D.state, text = st.panel === 'text', reading = st.view === 'reading';
+    b.classList.toggle('textmode', text); b.classList.toggle('no3d', st.scene === 'failed');
+    b.dataset.scene = st.scene; b.dataset.panel = st.panel; b.dataset.view = st.view; b.dataset.poem = st.poem;
+    b.dataset.moving = String(st.moving);
+    tv.hidden = !text; btn.textContent = text ? copy.backToScene : copy.textOnly; btn.setAttribute('aria-expanded', String(text));
+    if (text && changed.indexOf('panel') >= 0) tv.scrollTop = 0;
+    if (changed.indexOf('scene') >= 0 || changed.indexOf('reason') >= 0) {
+      if (st.scene === 'failed') { status.hidden = false; status.classList.remove('done'); status.textContent = st.reason ? st.reason + copy.reloadHint : 'The scene did not load.' + copy.reloadHint; }
+      if (st.scene === 'ready') { stage.classList.add('revealed'); status.classList.add('done'); clearTimeout(hideStatus); hideStatus = setTimeout(function () { status.hidden = true; }, 2000); }
+    }
+    stage.classList.toggle('reading', reading);
+    readLink.textContent = reading ? copy.back : copy.read;
+    hint.textContent = reading ? copy.hintReading : copy.hintRoom;
+    hint.style.opacity = (reading ? st.longPoem && copy.hintReading : true) ? 1 : 0;
+    progress.style.opacity = reading && st.longPoem ? 1 : 0;
+    var orbitBtn = $('orbitBtn'); if (orbitBtn) orbitBtn.setAttribute('aria-pressed', String(st.orbit));
+    var active = reading ? 'folder' : st.view;   // the review toolbar still calls the reading view "folder"
+    var vb = document.querySelectorAll('#devbar [data-view]'); for (var i = 0; i < vb.length; i++) vb[i].setAttribute('aria-pressed', String(vb[i].dataset.view === active));
+  }
+  if (/[?&]debug=1/.test(location.search)) D.on(function (st, changed) { console.log('dusk:state', changed.join(','), JSON.stringify(st)); });
+
   function fill(p) {
     $('tvNight').textContent = MOON.night(p).line; $('tvTitle').textContent = p.title; $('tvAuthor').textContent = p.author;
     var f = $('tvFrom'); f.textContent = '';
     if (p.collection) { f.appendChild(document.createTextNode('from ')); var i = document.createElement('i'); i.textContent = p.collection; f.appendChild(i); }
-    if (p.year) f.appendChild(document.createTextNode((p.collection ? ' \u00b7 ' : '') + p.year));
+    if (p.year) f.appendChild(document.createTextNode((p.collection ? ' · ' : '') + p.year));
     f.hidden = !(p.collection || p.year);
     $('tvLines').textContent = (p.lines || []).join('\n');
   }
-  function set(on) {
-    b.classList.toggle('textmode', on); tv.hidden = !on;
-    btn.textContent = on ? 'Return to scene' : 'Text only'; btn.setAttribute('aria-expanded', String(on));
-    if (on) tv.scrollTop = 0;
-  }
-  fill(POEM);
-  btn.addEventListener('click', function () { set(!b.classList.contains('textmode')); });
+  fill(POEM); render(['scene', 'panel', 'view']);
+  btn.addEventListener('click', D.toggleText);
+  // the older hooks, kept for anything that still calls them
   window.__showText = function (p) { if (p && p.title && p.lines) fill(p); };
-  window.__toText = function () { b.classList.add('no3d'); set(true); };   // the room can't run here: text, with no way back
+  window.__toText = function (reason) { D.sceneFailed(reason); };
   // (whether WebGL works is found out by making the renderer itself, in the room's script; a trial context here would use up one of the few the browser allows)
 })();
 </script>
@@ -297,7 +365,7 @@ async function buildRoom(DUST) {
     Object.assign(vathFgImg.style, { left: (VFG.x / VFG.W * 100) + '%', top: (VFG.y / VFG.H * 100) + '%', width: (VFG.w / VFG.W * 100) + '%' });
     st.insertBefore(vathFgImg, document.getElementById('hint'));
     document.getElementById('c').setAttribute('aria-label', "A café rendered as a Vathography depth picture: a band of light falls on the nearest frosted table, the people beyond fade into haze. Tonight's poem lies in an open folder on that table. Click the folder to read it.");
-    document.querySelectorAll('[data-view], #orbitBtn').forEach(b => { b.hidden = true; });
+    document.querySelectorAll('#devbar [data-view], #orbitBtn').forEach(b => { b.hidden = true; });
     const pal = document.querySelector('[aria-label="Room palette"]'); if (pal) pal.hidden = true;
   }
   if (LINEN) document.getElementById('c').setAttribute('aria-label', "A light-oak writing desk in a quiet room beside a white window hung with linen curtains, lit by a low orange dusk sun, with tonight's poem on loose sheets in an open folder. Click the folder to read it.");
@@ -305,8 +373,8 @@ async function buildRoom(DUST) {
   document.getElementById('settingName').textContent = SETTINGS[SETTING];
   if (RAIN) document.getElementById('c').setAttribute('aria-label', "A light-oak writing desk in a dim room beside a wide window onto a rainy, misty city, with tonight's poem on loose sheets in an open folder. Click the folder to read it.");
   if (SETTING === 'cafe') document.getElementById('c').setAttribute('aria-label', "A café at dusk, with exposed timber joists, a concrete floor and a glazed street front. Tonight's poem lies in an open folder on the frosted table nearest you. Click the folder to read it.");
-  const statusEl = document.getElementById('status');
-  const toText = msg => { if (msg) statusEl.textContent = msg; if (window.__toText) window.__toText(); };   // the room can't run: show the poem as text
+  const D = window.DuskRoom, S = D.state;                   // the page's state (see the first script); S is read, D.set() writes
+  const toText = reason => D.sceneFailed(reason);           // the room can't run: the poem as text, with no way back
   if (!window.THREE || !THREE.GLTFLoader) { toText('The 3D scene could not load its graphics library.'); return; }
   // tonight's Moon (round two): its age in days since the new moon and its lit fraction, for the window, the print and the desk
   const SYNODIC = 29.530588853;
@@ -1724,7 +1792,7 @@ async function buildRoom(DUST) {
       const place = t => seeds.forEach((d, i) => dpos.set([(d.x + Math.sin(t * d.sp + d.ph) * 1.2) * U, (d.y + Math.sin(t * d.sp * 0.6 + d.ph * 2) * 1.0) * U, (d.z + Math.cos(t * d.sp * 0.8 + d.ph) * 1.2) * U], i * 3));
       place(0); dg.attributes.position.needsUpdate = true;
       EVERY_FRAME.push(now => {
-        const k = Math.min(1, Math.max(0, (cur.par - 0.006) / 0.044));             // fades away as the camera moves in to read
+        const k = roomness(0.006, 0.044);                                           // fades away as the camera moves in to read
         coneMat.uniforms.strength.value = 0.12 * k * (LAMP.visible ? 1 : 0); dm.opacity = 0.55 * k;
         if (!still) { place(now / 1000); dg.attributes.position.needsUpdate = true; }
       });
@@ -1802,7 +1870,7 @@ async function buildRoom(DUST) {
       if (LAMP && LAMP.visible) { LAMP.getWorldPosition(lw); LAMP.target.getWorldPosition(lt); uni.uLampPos.value.copy(lw); uni.uLampDir.value.copy(lt.sub(lw).normalize()); uni.uLampOn.value = Math.min(1, LAMP.intensity / 8); }
       else uni.uLampOn.value = 0;
       if (WIN_LIGHT) { uni.uWinDir.value.copy(WIN_LIGHT.position).sub(WIN_LIGHT.target.position).normalize(); }
-      uni.uFade.value = Math.min(1, Math.max(0, (cur.par - 0.008) / 0.02));                   // the dust stays out of the reading view
+      uni.uFade.value = roomness(0.008, 0.02);                                                 // the dust stays out of the reading view
     });
   }
   }   // end of the Nook
@@ -2067,35 +2135,35 @@ async function buildRoom(DUST) {
     const q = sampleAt(sIn * U);
     return { pos: q.p.clone().addScaledVector(q.n, READ_D), tgt: q.p.clone(), up: q.t.clone().negate(), par: 0.006 };
   }
-  let view = 'room', anim = null;
+  let anim = null;                                          // the camera's transition between views, while S.moving
   const cur = { pos: ROOM.pos.clone(), tgt: ROOM.tgt.clone(), up: ROOM.up.clone(), par: ROOM.par };
-  const hint = document.getElementById('hint');
-  const readLink = document.getElementById('readLink'), progress = document.getElementById('progress'), progressFill = document.getElementById('progressFill');
-  function setHint() {
-    hint.textContent = view === 'room' ? 'Click the folder to read' : 'Scroll to follow the page · click to return';
-    hint.style.opacity = view === 'room' || sheetL > MIN_L + 0.5 ? 1 : 0;
-    progress.style.opacity = view === 'folder' && sheetL > MIN_L + 0.5 ? 1 : 0;
-  }
+  // how far the camera is from the reading view, 0 (reading) to 1 (the room), on a window of cur.par: the lamp, the light
+  // cone, the dust, the callouts and the café's wide lens all ease on it
+  const roomness = (lo, span) => Math.min(1, Math.max(0, (cur.par - lo) / span));
+  const progressFill = document.getElementById('progressFill');
+  const REDUCED = matchMedia('(prefers-reduced-motion: reduce)');
+  // goTo: the camera to a named view. 'reading' (the review toolbar still says 'folder') is the sheet; anything else is a
+  // fixed pose. The view's labels, hint, progress bar and buttons follow from the state, not from here.
   function goTo(name, instant) {
-    if (name === 'folder' && !path) return;
-    view = name;
-    readLink.textContent = name === 'folder' ? 'Back to the room' : "Read tonight's poem";
-    document.getElementById('stage').classList.toggle('reading', name === 'folder');
-    if (name === 'folder') { sRead = sReadTo = sBounds()[0]; }
-    setHint();
-    const to = name === 'folder' ? readingPose(sRead) : (REVIEW[name] || ROOM);
-    document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === name)));
-    if (orbit) setOrbit(false);
-    if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { cur.pos.copy(to.pos); cur.tgt.copy(to.tgt); cur.up.copy(to.up); cur.par = to.par; anim = null; return; }
+    if (name === 'folder') name = 'reading';
+    if (name === 'reading' && !path) return;                // the sheet is not built yet
+    if (name === 'reading') { sRead = sReadTo = sBounds()[0]; }
+    const to = name === 'reading' ? readingPose(sRead) : (REVIEW[name] || ROOM);
+    if (S.orbit) setOrbit(false);
+    const now = instant || REDUCED.matches;
+    D.set({ view: name, moving: !now });
+    if (now) { cur.pos.copy(to.pos); cur.tgt.copy(to.tgt); cur.up.copy(to.up); cur.par = to.par; anim = null; return; }
     anim = { t0: performance.now(), dur: 1100, fp: cur.pos.clone(), ft: cur.tgt.clone(), fu: cur.up.clone(), fpar: cur.par, to };
   }
   const poemOverlay = document.getElementById('poemOverlay');
-  function showPoem(on) {
+  function showPoem(on) {                                   // the Vathograph: the poem is an overlay, and 'reading' means it is open
     poemOverlay.hidden = !on;
-    readLink.textContent = on ? 'Close the poem' : "Read tonight's poem";
-    hint.style.opacity = on ? 0 : 1;
+    D.set({ view: on ? 'reading' : 'room' });
     if (on) requestAnimationFrame(() => paperize(poCard));
   }
+  if (VATH) { D.copy.back = 'Close the poem'; D.copy.hintReading = ''; }
+  const read = () => VATH ? showPoem(true) : goTo('reading');   // the two ways in and out of the poem
+  const leave = () => VATH ? showPoem(false) : goTo('room');
   function fillOverlay(p) {
     document.getElementById('poTitle').textContent = p.title;
     document.getElementById('poAuthor').textContent = p.author + (p.year ? ', ' + p.year : '');
@@ -2153,41 +2221,42 @@ async function buildRoom(DUST) {
   }
   const poCard = poemOverlay.querySelector('.po-card');
   if (window.ResizeObserver) new ResizeObserver(() => paperize(poCard)).observe(poCard);
-  addEventListener('keydown', e => { if (VATH && e.key === 'Escape' && !poemOverlay.hidden) showPoem(false); });
-  readLink.addEventListener('click', () => VATH ? showPoem(poemOverlay.hidden) : goTo(view === 'folder' ? 'room' : 'folder'));
+  document.getElementById('readLink').addEventListener('click', () => S.view === 'reading' ? leave() : read());
   const nudge = d => { const [lo, hi] = sBounds(); sReadTo = Math.min(hi, Math.max(lo, sReadTo + d)); };
-  addEventListener('keydown', e => {
-    if (view !== 'folder') return;
-    if (e.key === 'Escape') goTo('room');
+  addEventListener('keydown', e => {                        // while reading: Escape leaves; the arrows and Page keys follow the sheet
+    if (S.view !== 'reading') return;
+    if (e.key === 'Escape') leave();
+    else if (VATH) return;
     else if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') { nudge(e.key === 'ArrowDown' ? 1.5 : 8); e.preventDefault(); }
     else if (e.key === 'ArrowUp' || e.key === 'PageUp') { nudge(e.key === 'ArrowUp' ? -1.5 : -8); e.preventDefault(); }
   });
-  canvas.addEventListener('wheel', e => { if (view !== 'folder') return; e.preventDefault(); nudge(e.deltaY * 0.02); }, { passive: false });
-  canvas.addEventListener('keydown', e => {                 // the canvas is focusable: Enter or Space reads the poem (Escape, above, returns)
-    if (view !== 'room' || orbit || (e.key !== 'Enter' && e.key !== ' ')) return;
-    e.preventDefault(); if (VATH) showPoem(true); else goTo('folder');
+  canvas.addEventListener('wheel', e => { if (S.view !== 'reading' || VATH) return; e.preventDefault(); nudge(e.deltaY * 0.02); }, { passive: false });
+  canvas.addEventListener('keydown', e => {                 // the canvas is focusable: Enter or Space reads the poem
+    if (S.view !== 'room' || S.orbit || (e.key !== 'Enter' && e.key !== ' ')) return;
+    e.preventDefault(); read();
   });
 
+  // the pointer on the canvas: a press that moves more than 6 px while reading is a drag along the sheet, not a click
   const pointer = new THREE.Vector2(), par = new THREE.Vector2(), parTo = new THREE.Vector2(), ray = new THREE.Raycaster();
-  let drag = null;
-  canvas.addEventListener('pointerdown', e => { drag = { y: e.clientY, moved: 0 }; });
+  let press = null, dragged = false;                        // press: { y, moved } while a pointer is held; dragged: the press that just ended was a drag
+  canvas.addEventListener('pointerdown', e => { press = { y: e.clientY, moved: 0 }; dragged = false; });
   canvas.addEventListener('pointermove', e => {
     const r = canvas.getBoundingClientRect();
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     if (e.pointerType === 'mouse') parTo.copy(pointer);
-    if (drag && view === 'folder') { const dy = e.clientY - drag.y; drag.y = e.clientY; drag.moved += Math.abs(dy); nudge(-dy * 0.03); }
-    if (folderMeshes.length && view === 'room') { ray.setFromCamera(pointer, camera); canvas.classList.toggle('over-folder', ray.intersectObjects(folderMeshes, false).length > 0); }
+    if (press && S.view === 'reading' && !VATH) { const dy = e.clientY - press.y; press.y = e.clientY; press.moved += Math.abs(dy); nudge(-dy * 0.03); }
+    if (folderMeshes.length && S.view === 'room') { ray.setFromCamera(pointer, camera); canvas.classList.toggle('over-folder', ray.intersectObjects(folderMeshes, false).length > 0); }
   });
-  addEventListener('pointerup', () => { setTimeout(() => { drag = null; }, 0); });
+  addEventListener('pointerup', () => { if (press) { dragged = press.moved > 6; press = null; } });   // pointerup comes before click, which reads `dragged`
   canvas.addEventListener('pointerleave', () => parTo.set(0, 0));
   canvas.addEventListener('click', e => {
-    if (orbit) return;
-    if (drag && drag.moved > 6) return;                      // a drag to scroll is not a click
-    if (view === 'folder') { goTo('room'); return; }
+    if (S.orbit) return;
+    if (dragged) { dragged = false; return; }
+    if (S.view === 'reading') { leave(); return; }
     const r = canvas.getBoundingClientRect();
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(pointer, camera);
-    if (ray.intersectObjects(folderMeshes, false).length) { if (VATH) showPoem(true); else goTo('folder'); }
+    if (ray.intersectObjects(folderMeshes, false).length) read();
   });
 
   function fovFor(hf) { if (VCAM) { applyVProj(); return; } camera.fov = Math.min(SETTING === 'cafe' ? 82 : 70, 2 * Math.atan(Math.tan(hf / 2) / camera.aspect) * 180 / Math.PI); camera.updateProjectionMatrix(); }
@@ -2199,18 +2268,18 @@ async function buildRoom(DUST) {
   }
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
   // review toolbar: views, free orbit for inspection, palette switch, save image
-  let orbit = false, controls = null;
+  let controls = null;
   function setOrbit(on) {
-    orbit = on; document.getElementById('orbitBtn').setAttribute('aria-pressed', String(on));
+    D.set({ orbit: on });
     if (on) {
       if (!controls && THREE.OrbitControls) { controls = new THREE.OrbitControls(camera, canvas); controls.enableDamping = true; controls.dampingFactor = 0.08; controls.minDistance = 0.3; controls.maxDistance = 6; }
       if (!controls) return;
       anim = null; camera.up.set(0, 1, 0); camera.position.copy(cur.pos); controls.target.copy(cur.tgt); controls.enabled = true; controls.update();
     } else if (controls) controls.enabled = false;
   }
-  document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.view)));
+  document.querySelectorAll('#devbar [data-view]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.view)));   // scoped: <body data-view> is the state, not a button
   document.getElementById('orbitBtn').addEventListener('click', () => {
-    if (orbit) { setOrbit(false); goTo(view === 'folder' ? 'folder' : view, true); } else setOrbit(true);
+    if (S.orbit) { setOrbit(false); goTo(S.view, true); } else setOrbit(true);
   });
   document.querySelectorAll('[data-palette]').forEach(b => b.addEventListener('click', () => {
     setPalette(b.dataset.palette);
@@ -2239,7 +2308,7 @@ async function buildRoom(DUST) {
   }
   snapBtn.addEventListener('click', () => {
     renderer.render(scene, camera);
-    const name = 'dusk-room-' + (SETTING || 'nook') + '-' + view + '.png';
+    const name = 'dusk-room-' + (SETTING || 'nook') + '-' + S.view + '.png';
     if (!window.claude) { const a = document.createElement('a'); a.href = snapCanvas().toDataURL('image/png'); a.download = name; document.body.appendChild(a); a.click(); a.remove(); return; }
     if (!downloads) { flash('Saving isn\u2019t available here'); return; }
     snapCanvas().toBlob(blob => {
@@ -2267,7 +2336,7 @@ async function buildRoom(DUST) {
   const pv = new THREE.Vector3();
   function placeCallouts() {
     if (!calloutAnchors) return;
-    const vis = labelsOn && !orbit ? Math.min(1, Math.max(0, (cur.par - 0.007) / 0.005)) : (labelsOn && orbit ? 1 : 0);   // fade out in the reading view
+    const vis = labelsOn && !S.orbit ? roomness(0.007, 0.005) : (labelsOn && S.orbit ? 1 : 0);   // fade out in the reading view
     [CA, CB].forEach(c => c.style.opacity = vis); CL.style.opacity = vis; CL.classList.toggle('off', vis === 0);
     if (vis === 0) return;
     // one leader line from the sheet to the AUTHOR pill; the FROM pill stacks just beneath it (2026-11-04)
@@ -2288,10 +2357,10 @@ async function buildRoom(DUST) {
   }
 
   const side = new THREE.Vector3(), upv = new THREE.Vector3();
-  let onScreen = true;                                        // the stage scrolled out of view (a long host page): the room is left as it is
-  if (window.IntersectionObserver) new IntersectionObserver(([en]) => { onScreen = en.isIntersecting; }, { threshold: 0 }).observe(document.getElementById('stage'));
+  // the stage scrolled out of view (a long host page), or the text showing: the room is left as it is
+  if (window.IntersectionObserver) new IntersectionObserver(([en]) => D.set({ visible: en.isIntersecting }), { threshold: 0 }).observe(document.getElementById('stage'));
   function tick(now) {
-    if (!onScreen || document.body.classList.contains('textmode')) { requestAnimationFrame(tick); return; }   // nothing to draw
+    if (!S.visible || S.panel === 'text') { requestAnimationFrame(tick); return; }   // nothing to draw
     resize();
     EVERY_FRAME.forEach(f => f(now));
     if (VCAM) {                                              // one fixed view: no zoom, parallax or drift
@@ -2302,20 +2371,20 @@ async function buildRoom(DUST) {
       const k = Math.min(1, (now - anim.t0) / anim.dur), e = ease(k);
       cur.pos.lerpVectors(anim.fp, anim.to.pos, e); cur.tgt.lerpVectors(anim.ft, anim.to.tgt, e);
       cur.up.lerpVectors(anim.fu, anim.to.up, e).normalize(); cur.par = anim.fpar + (anim.to.par - anim.fpar) * e;
-      if (k >= 1) anim = null;
-    } else if (view === 'folder' && path) {                  // follow the sheet
+      if (k >= 1) { anim = null; D.set({ moving: false }); }
+    } else if (S.view === 'reading' && path) {               // follow the sheet
       sRead += (sReadTo - sRead) * 0.12;
       const q = readingPose(sRead); cur.pos.copy(q.pos); cur.tgt.copy(q.tgt); cur.up.copy(q.up); cur.par = q.par;
       const [lo, hi] = sBounds(); progressFill.style.height = (hi > lo ? (sRead - lo) / (hi - lo) * 100 : 0).toFixed(1) + '%';
     }
     if (HFOV_ROOM !== HFOV_READ) {                          // the café: room views are wide, the reading view is the Nook's
-      const k = Math.min(1, Math.max(0, (cur.par - 0.006) / 0.004)), want = HFOV_READ + (HFOV_ROOM - HFOV_READ) * k;
+      const k = roomness(0.006, 0.004), want = HFOV_READ + (HFOV_ROOM - HFOV_READ) * k;
       if (Math.abs(want - hfov) > 1e-4) { hfov = want; fovFor(hfov); }
     }
-    if (orbit && controls) {
+    if (S.orbit && controls) {
       controls.update(); renderer.render(scene, camera); placeCallouts(); requestAnimationFrame(tick); return;
     }
-    if (LAMP) { const t = Math.min(1, Math.max(0, (cur.par - 0.006) / 0.044)); LAMP.intensity = LAMP_LO + (LAMP_HI - LAMP_LO) * t; }   // full in the room, low up close
+    if (LAMP) { const t = roomness(0.006, 0.044); LAMP.intensity = LAMP_LO + (LAMP_HI - LAMP_LO) * t; }   // full in the room, low up close
     par.lerp(parTo, 0.06);
     camera.up.copy(cur.up);
     camera.position.copy(cur.pos); camera.lookAt(cur.tgt);
@@ -2353,7 +2422,13 @@ async function buildRoom(DUST) {
     scene.add(m); folderMeshes.push(m);
   }
 
-  function setPoem(p) { if (window.__showText) window.__showText(p); if (VATH) fillOverlay(p); setCallouts(p); drawSheet(p); buildSheet(); setHint(); if (view === 'folder') { sRead = sReadTo = sBounds()[0]; } }
+  // setPoem: tonight's poem into every place it shows (text view, overlay, callouts, the sheet). source: 'tonight' (poem.json) or 'baked'.
+  function setPoem(p, source) {
+    if (window.__showText) window.__showText(p); if (VATH) fillOverlay(p); setCallouts(p); drawSheet(p); buildSheet();
+    D.canRead = !!path;
+    D.set({ longPoem: sheetL > MIN_L + 0.5, poem: source || 'tonight' });
+    if (S.view === 'reading') { sRead = sReadTo = sBounds()[0]; }
+  }
 
   (async function start() {
     try {
@@ -2402,18 +2477,19 @@ async function buildRoom(DUST) {
       const anchor = { x: (tb.min.x + tb.max.x) / 2, zBack: tb.min.z, yOnFolder: tb.max.y, zFolderFront: front + 0.004, deskY: db.max.y, zEdge: db.max.z };
       path = buildPath(anchor); makeContact(anchor); makeBookmark(anchor, tb, pb);
       if (CAFE || VATH) { scene.remove(contact); contact = null; }   // the café table has no apron for the hanging sheet to shade
-      let poem = PLACEHOLDER;
-      try { const r = await fetch('poem.json', { cache: 'no-store' }); if (r.ok) poem = await r.json(); } catch (e) { /* placeholder stays */ }
-      setPoem(poem);
-      requestAnimationFrame(() => requestAnimationFrame(() => { document.getElementById('stage').classList.add('revealed'); statusEl.classList.add('done'); setTimeout(() => { statusEl.hidden = true; }, 2000); }));
+      let poem = PLACEHOLDER, source = 'baked';
+      try { const r = await fetch('poem.json', { cache: 'no-store' }); if (r.ok) { poem = await r.json(); source = 'tonight'; } } catch (e) { /* the baked copy stays */ }
+      setPoem(poem, source);
+      requestAnimationFrame(() => requestAnimationFrame(() => D.sceneReady()));   // after the first frame has drawn: the loading screen fades, the room settles in
     } catch (e) {
-      statusEl.textContent = 'The scene did not load. Reload the page to try again.';
-      if (window.__toText) window.__toText();
+      toText('The scene did not load.');
       console.error(e);
     }
   })();
   goTo('room', true);
   requestAnimationFrame(tick);
+  // the room's transitions, on the shared state object, and the older hooks for anything that still calls them
+  Object.assign(D, { read, leave, goTo, setPoem, nudge, setPalette });
   window.__goTo = goTo; window.__setPalette = setPalette; window.__setPoem = setPoem; window.__nudge = nudge;
 }
 // Let the loading screen (and the Text-only button) paint first, then fetch the dust and build the room.
@@ -2421,7 +2497,7 @@ requestAnimationFrame(() => setTimeout(async () => {
   let dust = null;
   try { const r = await fetch('assets/dust.json'); if (r.ok) dust = await r.json(); } catch (e) { /* no dust tonight */ }
   try { await buildRoom(dust); }
-  catch (e) { document.getElementById('status').textContent = 'The scene did not load.'; if (window.__toText) window.__toText(); console.error(e); }
+  catch (e) { window.DuskRoom.sceneFailed('The scene did not load.'); console.error(e); }
 }, 0));
 </script>
 
