@@ -12,7 +12,8 @@
    pale flecks near the limb like his scanned moons. The number of n's is the phase (lit share x 12), set evenly just
    outside the lit edge and nudged by hand-like jitter; a new moon is the disc alone, a full moon the ring of n's alone.
    Nothing loads in (Maxx); every 20 s one n fades out and back. Transparent; the SVG fills the frame.
-   ?phase=0..1 previews a phase (0 new, .5 full). ?home=0 drops the home link. Reduced motion: no fading. */
+   ?phase=0..1 previews a phase (0 new, .5 full). ?home=0 drops the home link. ?scale=0.5..1 sizes the mark within the
+   frame (default SCALE below). Reduced motion: no fading. */
 html, body { margin: 0; height: 100%; background: transparent; }
 a, .m { display: block; width: 100%; height: 100%; }
 svg { display: block; width: 100%; height: 100%; }
@@ -24,6 +25,9 @@ a:focus-visible { outline: 1px solid #555; outline-offset: -2px; }
 <script>
 (function () {
   var NS = 'http://www.w3.org/2000/svg', FONT = 'Inter Tight, Helvetica Neue, Arial, sans-serif', svg = document.getElementById('s');
+  // the mark's size within the frame (Maxx: smaller overall); the frame itself is set in Figma
+  var SCALE = 0.65, sm = /[?&]scale=([0-9.]+)/.exec(location.search); if (sm) SCALE = Math.min(1, Math.max(0.4, parseFloat(sm[1])));
+  var VB = 56 / SCALE, o = (56 - VB) / 2; svg.setAttribute('viewBox', o.toFixed(2) + ' ' + o.toFixed(2) + ' ' + VB.toFixed(2) + ' ' + VB.toFixed(2));
   var NAMES = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
   var REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches, q = location.search, m = /[?&]phase=([0-9.]+)/.exec(q), f;
   if (m) f = Math.min(1, Math.max(0, parseFloat(m[1])));
