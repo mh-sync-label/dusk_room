@@ -1,15 +1,12 @@
 {
-  "title": "To the Moon",
-  "author": "Percy Bysshe Shelley",
-  "year": 1824,
+  "title": "[You don’t know the day until]",
+  "author": "Wendell Berry",
   "lines": [
-    "Art thou pale for weariness",
-    "Of climbing heaven and gazing on the earth,",
-    "Wandering companionless",
-    "Among the stars that have a different birth,—",
-    "And ever changing, like a joyless eye",
-    "That finds no object worth its constancy?"
-  ],
-  "note": "Placeholder poem until the nightly match is connected.",
-  "collection": "Posthumous Poems"
+    "III.",
+    "",
+    "You don’t know the day until",
+    "You’ve seen the last of it",
+    "Reddening the hill",
+    "And rising into night"
+  ]
 }
