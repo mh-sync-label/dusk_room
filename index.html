@@ -2667,7 +2667,7 @@ async function buildRoom(DUST) {
     pageTex = new THREE.CanvasTexture(pageCanvas);
     pageTex.encoding = THREE.sRGBEncoding; pageTex.flipY = false; pageTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     sheetMat.map = pageTex; sheetMat.needsUpdate = true;
-    sheetL = lay.L; sheetFocus = drop > 0.05 ? MARG + drop + block / 2 : 0;   // (a long poem leaves a rounding-sized drop)
+    sheetL = lay.L; sheetFocus = drop > 0.05 ? MARG + drop + block / 2 + 1.0 : 0;   // the frame centres 1 in below the poem's middle, so the poem sits above centre   // (a long poem leaves a rounding-sized drop)
     document.getElementById('poemText').textContent = p.lines.join('\n');
     document.getElementById('poemMeta').textContent = `${p.title}, ${p.author}` + (p.note ? ` · ${p.note}` : '');
     return lay.L;
