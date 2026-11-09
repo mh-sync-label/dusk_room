@@ -19,8 +19,6 @@ body { background: var(--ground); color: var(--ink); font-family: var(--serif);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: max(28px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px)); }
 main { max-width: 34em; margin: 0 auto; }
-.night { margin: 0 0 14px; font: 500 0.68rem/1.4 var(--ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--label); }
-.night:empty { display: none; }
 article { }
 h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75rem); line-height: 1.2; text-wrap: balance; }
 .author { margin: 0; font-style: italic; font-size: 1.08rem; color: var(--soft); }
@@ -31,7 +29,6 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
 </head>
 <body>
 <main>
-  <p class="night" id="night"></p>
   <article aria-labelledby="t">
     <h1 id="t">Sabbaths 2014, III</h1>
     <p class="author" id="a">Wendell Berry</p>
@@ -44,15 +41,7 @@ And rising into night</p>
 </main>
 <script>
 (function () {
-  var PHASES = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
-  function night(p) {                       // the same date and phase line as the sheet in the room
-    var d = p.date ? new Date(p.date + 'T21:00:00') : new Date();
-    var age = ((d.getTime() / 86400000 + 2440587.5 - 2451550.1) % 29.530588853 + 29.530588853) % 29.530588853;
-    var phase = p.phase || PHASES[Math.floor((age / 29.530588853) * 8 + 0.5) % 8];
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + phase;
-  }
   function show(p) {
-    document.getElementById('night').textContent = night(p);
     document.getElementById('t').textContent = p.title;
     document.getElementById('a').textContent = p.author;
     var f = document.getElementById('f'); f.innerHTML = '';
