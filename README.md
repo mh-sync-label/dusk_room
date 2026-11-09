@@ -6,10 +6,15 @@ long poems hang over the desk and scroll. A "Text only" view sits above the scen
 and takes over on its own if the 3D scene cannot run.
 
 - `index.html`: the page (three.js r147 from jsDelivr, pinned with integrity hashes). The viewer builds the Nook only;
-  the other rooms (Rain, Linen, Café, Vathograph) stay in the code for the review build and are never built here.
-- `assets/`: the desk model (`desk.glb`), the brick wall's five maps, the loading logo, the bookmark, the dust frames
-  (`dust.json`), and the café figures (`cafe-figures.json`, fetched only when the café is built). Kept as files rather
-  than inlined so the page itself is small and the browser caches each asset on its own.
+  the other rooms (Rain, Linen, Café, Vathograph, Dressing room) stay in the code for the review build and are never
+  built here. The scene code tracks the master page, `Desk_and_Folder_v<N>.html` in `Documents/PP/N_Room` on Maxx's
+  Mac (currently v75): to bring a new master in, three-way merge it against the version the live page last took, keep
+  the viewer's own lines (the Text-only view, the `DuskRoom` state, the assets in `assets/`, the closer reading
+  distance `READ_D`/`READ_HALF`), and extract any new embedded data to `assets/`.
+- `assets/`: the desk model (`desk.glb`), the brick wall's five maps, the Notturno paper (`notturno-paper.jpg`), the
+  loading logo, the bookmark, the dust frames (`dust.json`), the café figures (`cafe-figures.json`, fetched only when
+  the café is built), and the Vathograph picture and its cut-out chair (`vath-bg.jpg`, `vath-fg.png`, used only there).
+  Kept as files rather than inlined so the page itself is small and the browser caches each asset on its own.
 - `poem.json`: tonight's poem, `{ title, author, year, lines: [...], collection?, date?, phase?, note? }`. Replace it
   nightly; the page fetches it with no caching. One copy of the current poem is also baked into `index.html` (the
   `POEM` constant near the top of the text-view script) so the page is never empty while it loads.
