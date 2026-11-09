@@ -2613,6 +2613,7 @@ async function buildRoom(DUST) {
   const SHEET_W = 8.5, MIN_L = 11, EM = 0.25, LEAD = 1.5, MARG = 1.15;
   const pageCanvas = document.createElement('canvas');
   let pageTex = null, sheetMesh = null, sheetL = MIN_L, path = null;
+  let sheetFocus = 0;                                       // where a short poem's block is centred on the sheet (in); 0 for a long poem
   const sheetMat = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
   sheetMat.envMapIntensity = ENV_SUBJECT;
   Object.assign(sheetMat, { polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -16 });
@@ -2666,7 +2667,7 @@ async function buildRoom(DUST) {
     pageTex = new THREE.CanvasTexture(pageCanvas);
     pageTex.encoding = THREE.sRGBEncoding; pageTex.flipY = false; pageTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
     sheetMat.map = pageTex; sheetMat.needsUpdate = true;
-    sheetL = lay.L;
+    sheetL = lay.L; sheetFocus = drop > 0.05 ? MARG + drop + block / 2 : 0;   // (a long poem leaves a rounding-sized drop)
     document.getElementById('poemText').textContent = p.lines.join('\n');
     document.getElementById('poemMeta').textContent = `${p.title}, ${p.author}` + (p.note ? ` · ${p.note}` : '');
     return lay.L;
@@ -2864,6 +2865,8 @@ async function buildRoom(DUST) {
   const READ_D = 0.3, READ_HALF = 3.65;   // viewer: closer than the master page's 0.46 / 5.6, for the smaller frame   // camera distance (m); half the visible sheet length (in)
   let sRead = 0, sReadTo = 0;
   const sBounds = () => { const lo = Math.min(READ_HALF, sheetL / 2), hi = Math.max(lo, sheetL - READ_HALF); return [lo, hi]; };
+  // the reading view opens on the poem: a short poem's block is centred in the frame; a long poem opens at the top (2026-11-08)
+  const readStart = () => { const [lo, hi] = sBounds(); return sheetFocus ? Math.min(hi, Math.max(lo, sheetFocus)) : lo; };
   function readingPose(sIn) {
     const q = sampleAt(sIn * U);
     return { pos: q.p.clone().addScaledVector(q.n, READ_D), tgt: q.p.clone(), up: q.t.clone().negate(), par: 0.006 };
@@ -2880,7 +2883,7 @@ async function buildRoom(DUST) {
   function goTo(name, instant) {
     if (name === 'folder') name = 'reading';
     if (name === 'reading' && !path) return;                // the sheet is not built yet
-    if (name === 'reading') { sRead = sReadTo = sBounds()[0]; }
+    if (name === 'reading') { sRead = sReadTo = readStart(); }
     const to = name === 'reading' ? readingPose(sRead) : (REVIEW[name] || ROOM);
     if (S.orbit) setOrbit(false);
     const now = instant || REDUCED.matches;
@@ -3175,7 +3178,7 @@ async function buildRoom(DUST) {
     if (window.__showText) window.__showText(p); if (VATH) fillOverlay(p); setCallouts(p); drawSheet(p); buildSheet();
     D.canRead = !!path;
     D.set({ longPoem: sheetL > MIN_L + 0.5, poem: source || 'tonight' });
-    if (S.view === 'reading') { sRead = sReadTo = sBounds()[0]; }
+    if (S.view === 'reading') { sRead = sReadTo = readStart(); }
   }
 
   (async function start() {
