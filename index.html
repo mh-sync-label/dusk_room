@@ -168,7 +168,7 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
 <div class="wrap">
   <header>
     <h1>Desk and Folder</h1>
-    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v54</p>
+    <p class="sub">Tonight's poem, in an open folder on a light-oak desk · setting: <span id="settingName">Nook</span> · v75</p>
   </header>
   <div class="modebar" id="modebar"><button id="textBtn" type="button" aria-controls="textView" aria-expanded="false">Text only</button></div>
   <div class="stage" id="stage">
@@ -214,6 +214,7 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
       <button data-setting="linen" aria-pressed="false">Linen</button>
       <button data-setting="cafe" aria-pressed="false">Café</button>
       <button data-setting="vath" aria-pressed="false">Vathograph</button>
+      <button data-setting="dress" aria-pressed="false">Dressing room</button>
     </div>
   </div>
   <p class="poem-meta" id="poemMeta"></p>
@@ -329,24 +330,25 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
 </script>
 
 <!-- three.js r147, pinned, with integrity hashes taken from the npm package (jsDelivr serves the npm files as they are).
-     OrbitControls is loaded only if the review toolbar is shown; the viewer page never shows it. -->
+     OrbitControls is loaded only if the review toolbar is shown; the viewer page never shows it. Reflector is the dressing room's mirror. -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js" integrity="sha384-vV17nr/rMaJqmeZkFUzXLpHdQ+ME5QHKdydaqqN+3Ga39RJlNrTatJxHwGV4ml2C" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js" integrity="sha384-FassWWYNEPQsuRQm+59KIMcDetEc30bNyE9yfx16Ok8lvoowyH81LtrPmLWltJMh" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/objects/Reflector.js" integrity="sha384-RGvopPqHHQQVpbqOsgAjDXkKaGg4q2SGKqvrizOcof+43ykCa9mmOAWGKmx1pvsw" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js" integrity="sha384-NG9Vjao8FDKsRPhzsQGvMRSCrkgzJlysZlYZ69P52mH1tEpkurCHq0M8jbSP7/gl" crossorigin="anonymous"></script>
 <script>
 // The room. Everything is set up once the loading screen has painted (see the end of this block), so the Text-only button
 // answers at once and the long synchronous build of the room comes a frame later.
 async function buildRoom(DUST) {
   // Settings (2026-11-05): the same folder and poem in another room; SETTING_DEFAULT picks one. The viewer page is the Nook only:
-  // the other rooms (Rain, Linen, Café, Vathograph) stay in the code for the review build and are never built here, so they
+  // the other rooms (Rain, Linen, Café, Vathograph, Dressing room) stay in the code for the review build and are never built here, so they
   // cost nothing but their lines. Their data lives in assets/ and is fetched only when that room is built.
   // Rain (2026-11-05): the Nook's room with a wide window onto a rainy city seen from high up.
   // Linen (2026-11-05): a white window in linen curtains, warm haze outside.
   const SETTING_DEFAULT = 'nook';
-  const SETTINGS = { nook: 'Nook', rain: 'Rain', linen: 'Linen', cafe: 'Café', vath: 'Vathograph' };
+  const SETTINGS = { nook: 'Nook', rain: 'Rain', linen: 'Linen', cafe: 'Café', vath: 'Vathograph', dress: 'Dressing room' };   // Dressing room (2026-11-08): one person's vanity after Maxx's boutique
   const askedFor = SETTING_DEFAULT;
   const SETTING = SETTINGS[askedFor] ? askedFor : 'nook';
-  const ROOM_KIND = SETTING === 'cafe' ? 'cafe' : SETTING === 'vath' ? 'vath' : 'nook', RAIN = SETTING === 'rain', LINEN = SETTING === 'linen';
+  const ROOM_KIND = SETTING === 'cafe' ? 'cafe' : SETTING === 'vath' ? 'vath' : SETTING === 'dress' ? 'dress' : 'nook', RAIN = SETTING === 'rain', LINEN = SETTING === 'linen';
   // Vathograph (2026-11-06): Maxx's café photo turned into a Vathography picture (Blender, Vathography Free, a lit band of
   // depth on the folder's table), with the laptop and notebook taken out of the depth map. No 3D room is built: the picture
   // is the room, and the 3D folder sits on the nearest frosted table under one camera matched to the photo (iPhone
@@ -369,9 +371,32 @@ async function buildRoom(DUST) {
     const pal = document.querySelector('[aria-label="Room palette"]'); if (pal) pal.hidden = true;
   }
   if (LINEN) document.getElementById('c').setAttribute('aria-label', "A light-oak writing desk in a quiet room beside a white window hung with linen curtains, lit by a low orange dusk sun, with tonight's poem on loose sheets in an open folder. Click the folder to read it.");
-
+  if (LINEN || SETTING === 'nook' || SETTING === 'rain' || SETTING === 'dress') {   // v58: a soft grade, a fine moving grain and a vignette for Linen; v63: the grain in the Nook and Rain too; v73: and the dressing room; under the labels and the reading card
+    const cv = document.getElementById('c'); if (LINEN) cv.style.filter = 'saturate(0.85) contrast(1.06) sepia(0.12)';
+    const vig = document.createElement('div'); vig.setAttribute('aria-hidden', 'true');
+    vig.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at 55% 50%, rgba(20,16,10,0) 52%, rgba(20,16,10,0.42) 100%)';
+    // v64: 35mm-style grain (Maxx): soft irregular clumps about 2 px across, their density drifting over a few pixels, with
+    // a little fine grain on top; built seamless (each layer is enlarged from a 3 x 3 tiling, so tile edges blend)
+    const T = 256, gc = document.createElement('canvas'); gc.width = gc.height = T; const gx = gc.getContext('2d', { willReadFrequently: true });
+    const noise = n => { const c = document.createElement('canvas'); c.width = c.height = n; const x = c.getContext('2d', { willReadFrequently: true }), d = x.createImageData(n, n);
+      for (let k = 0; k < d.data.length; k += 4) { const v = Math.random() * 255; d.data[k] = d.data[k + 1] = d.data[k + 2] = v; d.data[k + 3] = 255; } x.putImageData(d, 0, 0); return c; };
+    const up = (src, alpha) => { const t = document.createElement('canvas'); t.width = t.height = 3 * T; const x = t.getContext('2d', { willReadFrequently: true });
+      x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) x.drawImage(src, i * T, j * T, T, T);
+      gx.globalAlpha = alpha; gx.drawImage(t, T, T, T, T, 0, 0, T, T); };
+    up(noise(T / 2), 1); up(noise(T / 4), 0.22); up(noise(T), 0.4); gx.globalAlpha = 1;
+    { const d = gx.getImageData(0, 0, T, T), px = d.data; let m = 0, q = 0; const N = px.length / 4;   // stretch: clumps read as specks, not mush
+      for (let k = 0; k < px.length; k += 4) { m += px[k]; q += px[k] * px[k]; } m /= N; const sd = Math.sqrt(q / N - m * m) || 1;
+      for (let k = 0; k < px.length; k += 4) { const v = Math.max(0, Math.min(255, 128 + (px[k] - m) / sd * 46)); px[k] = px[k + 1] = px[k + 2] = v; }
+      gx.putImageData(d, 0, 0); }
+    const grain = document.createElement('div'); grain.setAttribute('aria-hidden', 'true');
+    grain.style.cssText = `position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0.045;mix-blend-mode:overlay;background-image:url(${gc.toDataURL()})`;
+    if (LINEN) cv.after(vig, grain); else cv.after(grain);
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(() => { grain.style.backgroundPosition = `${(Math.random() * T) | 0}px ${(Math.random() * T) | 0}px`; }, 1000 / 24);
+  }
+  addEventListener('hashchange', () => { if (/^#(cafe|nook|rain|linen|vath|dress)$/.test(location.hash) && location.hash.slice(1) !== SETTING) location.reload(); });
   document.getElementById('settingName').textContent = SETTINGS[SETTING];
   if (RAIN) document.getElementById('c').setAttribute('aria-label', "A light-oak writing desk in a dim room beside a wide window onto a rainy, misty city, with tonight's poem on loose sheets in an open folder. Click the folder to read it.");
+  if (SETTING === 'dress') document.getElementById('c').setAttribute('aria-label', "A dressing room at night: a round mirror ringed with light on a backlit wall of oak slats, a white counter over oak drawers, one upholstered stool, and a lattice window onto the moon. Tonight's poem lies in an open folder on the counter under the mirror. Click the folder to read it.");
   if (SETTING === 'cafe') document.getElementById('c').setAttribute('aria-label', "A café at dusk, with exposed timber joists, a concrete floor and a glazed street front. Tonight's poem lies in an open folder on the frosted table nearest you. Click the folder to read it.");
   const D = window.DuskRoom, S = D.state;                   // the page's state (see the first script); S is read, D.set() writes
   const toText = reason => D.sceneFailed(reason);           // the room can't run: the poem as text, with no way back
@@ -401,10 +426,10 @@ async function buildRoom(DUST) {
   try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: VATH, powerPreference: 'high-performance' }); }   // a two-GPU laptop: the discrete one
   catch (e) { toText('This browser could not start the 3D scene.'); console.error(e); return; }
   canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); toText('The 3D scene stopped (the browser gave up its graphics context).'); }, { once: true });
-  // phones and small frames: a lighter pixel ratio and shadow maps, since memory, not detail, is what fails there
-  const SMALL = Math.min(screen.width, screen.height) < 700 || Math.min(innerWidth, innerHeight) < 500;
-  const SHADOW_BIG = SMALL ? 2048 : 4096;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, SMALL ? 1.5 : 2));
+  // phones and small machines (v67): a lighter pixel ratio and shadow maps, since memory, not detail, is what fails there
+  const LOW_GPU = Math.min(screen.width || 9999, innerWidth || 9999) < 900 || (navigator.hardwareConcurrency || 8) < 6;
+  const SH_BIG = LOW_GPU ? 2048 : 4096, SH_LAMP = LOW_GPU ? 1024 : 2048;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LOW_GPU ? 1.5 : 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.82;
@@ -424,7 +449,8 @@ async function buildRoom(DUST) {
   // Dusk (2026-11-03): moonlight through the window is the key light and casts the window's shape across the desk.
   // A faint cool sky fill and a low warm fill from the viewer's side keep the oak desk and navy folder in true colour.
   const DIM = SETTING === 'nook' || SETTING === 'rain';      // 2026-11-05: lit only by the lamp and the window
-  const ENV_ROOM = DIM ? 0.06 : LINEN ? 0.07 : 0.35, ENV_SUBJECT = DIM ? 0.16 : LINEN ? 0.2 : 0.55;   // Linen at dusk (v43): a dimmer room   // the Endcap's values: crisp whites and a subject that pops (2026-11-03)
+  const DRESS = SETTING === 'dress';   // the dressing room (2026-11-08): night, lit by its slats, mirror ring and the moon
+  const ENV_ROOM = DIM ? 0.06 : LINEN ? 0.05 : DRESS ? 0.12 : 0.35, ENV_SUBJECT = DIM ? 0.16 : LINEN ? 0.2 : DRESS ? 0.3 : 0.55;   // Linen at dusk (v43): a dimmer room   // the Endcap's values: crisp whites and a subject that pops (2026-11-03)
   let WIN_LIGHT = null;                                   // the window's light, for the dust (2026-11-06)
   let LAMP = null, LAMP_LO = 1.8, LAMP_HI = DIM ? 15 : LINEN ? 14 : 12;      // lived-in pass: a stronger, warmer pool on the desk          // the scene's warm highlight, eased down in the reading view
   if (LINEN) {
@@ -432,19 +458,21 @@ async function buildRoom(DUST) {
     // v43, dusk: a low orange sun (about 21 degrees up, far to the right, nearly along the wall) whose beam crosses the room to the left: a long
     // window shape on the floor by the desk, climbing the brick wall; a cool violet sky fill; the room otherwise dim
     renderer.toneMappingExposure = 0.56;
-    scene.add(new THREE.HemisphereLight(0x8f93b8, 0x2b2226, 0.05));
-    const wt = new THREE.Vector3(-0.2, 0.4, 0.8);
-    const sun = new THREE.DirectionalLight(0xff8a48, 5.2); WIN_LIGHT = sun;
-    sun.position.copy(wt).add(new THREE.Vector3(4.0, 1.6, -0.9)); sun.target.position.copy(wt); scene.add(sun.target);
-    sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+    scene.add(new THREE.HemisphereLight(0x8f93b8, 0x2b2226, 0.03));                  // v58: the room falls away into shadow
+    // v58 (after Maxx's reference, with Fable): the sun from the upper left of the window, about 40 degrees up, coming in
+    // toward the right: it prints the bars and the branches across the stool, down the apron and onto the floor
+    const wt = new THREE.Vector3(84 * 0.0254, 6 * 0.0254, 24 * 0.0254);   // inches (U is defined further down)
+    const sun = new THREE.DirectionalLight(0xffa868, 4.4); WIN_LIGHT = sun;
+    sun.position.copy(wt).add(new THREE.Vector3(-0.252, 0.647, -0.719).multiplyScalar(5)); sun.target.position.copy(wt); scene.add(sun.target);
+    sun.castShadow = true; sun.shadow.mapSize.set(SH_BIG, SH_BIG); sun.userData.fitShadow = true;   // v67: box fitted to the room at load
     Object.assign(sun.shadow.camera, { left: -4.5, right: 4.5, top: 3.5, bottom: -3.5, near: 0.3, far: 12 });
-    sun.shadow.radius = 7; sun.shadow.blurSamples = 20; sun.shadow.bias = -0.002; sun.shadow.normalBias = 0.04;   // softened by the haze
+    sun.shadow.radius = 3.5; sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.005;
     scene.add(sun);
     const glow = new THREE.SpotLight(0xe79a86, 1.2, 5, 70 * Math.PI / 180, 1, 1.5);   // the window's glow on the sill, wall and floor near it: peach going to rose
     glow.position.set(2.0, 1.6, 0.1); glow.target.position.set(1.2, 0.4, 1.6); scene.add(glow.target); scene.add(glow);
-    const key = new THREE.DirectionalLight(0xc9cde6, 0.05);   // dusk: only a little cool light from the viewer's side
+    const key = new THREE.DirectionalLight(0xc9cde6, 0);   // v58: off: the window and the lamp are the light
     key.position.set(-0.6, 2.5, 3.3); key.target.position.set(0.15, 0.5, 0.3); scene.add(key.target);
-    key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+    key.castShadow = false; key.shadow.mapSize.set(2048, 2048);   // v67: too faint to show a shadow
     Object.assign(key.shadow.camera, { left: -2.8, right: 2.8, top: 2.6, bottom: -1.8, near: 0.5, far: 10 });
     key.shadow.radius = 9; key.shadow.blurSamples = 16; key.shadow.bias = -0.0005; key.shadow.normalBias = 0.02;
     scene.add(key);
@@ -456,15 +484,15 @@ async function buildRoom(DUST) {
     const wt = new THREE.Vector3(0.6, 0.5, 0.9);
     const sky = new THREE.DirectionalLight(0xd3dce6, 1.45); WIN_LIGHT = sky;
     sky.position.copy(wt).add(new THREE.Vector3(2.4, 2.2, -3.4)); sky.target.position.copy(wt); scene.add(sky.target);
-    sky.castShadow = true; sky.shadow.mapSize.set(2048, 2048);
+    sky.castShadow = true; sky.shadow.mapSize.set(SH_BIG, SH_BIG); sky.userData.fitShadow = true;   // v67: fitted box; overcast from the light, not a wide blur
     Object.assign(sky.shadow.camera, { left: -4.5, right: 4.5, top: 3.5, bottom: -3.5, near: 0.3, far: 12 });
-    sky.shadow.radius = 10; sky.shadow.blurSamples = 20; sky.shadow.bias = -0.002; sky.shadow.normalBias = 0.04;   // overcast: very soft edges
+    sky.shadow.radius = 4.5; sky.shadow.bias = -0.0003; sky.shadow.normalBias = 0.005;
     scene.add(sky);
     const glow = new THREE.SpotLight(0xc8d3df, 2.2, 5, 70 * Math.PI / 180, 1, 1.5);   // the window's own glow on the sill, wall and floor near it
     glow.position.set(2.29, 1.58, 0.12); glow.target.position.set(1.4, 0.4, 1.6); scene.add(glow.target); scene.add(glow);
     const key = new THREE.DirectionalLight(0xfff4e6, 0.06);
     key.position.set(-0.6, 2.5, 3.3); key.target.position.set(0.15, 0.5, 0.3); scene.add(key.target);
-    key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+    key.castShadow = false; key.shadow.mapSize.set(2048, 2048);   // v67: too faint to show a shadow
     Object.assign(key.shadow.camera, { left: -2.8, right: 2.8, top: 2.6, bottom: -1.8, near: 0.5, far: 10 });
     key.shadow.radius = 9; key.shadow.blurSamples = 16; key.shadow.bias = -0.0005; key.shadow.normalBias = 0.02;
     scene.add(key);
@@ -473,17 +501,18 @@ async function buildRoom(DUST) {
   scene.add(new THREE.HemisphereLight(0xb8c6e0, 0x24221f, 0.07));   // a trace of night sky only (2026-11-05)   // cooled toward the window's blue (lived-in pass)
   const moonTarget = new THREE.Vector3(0.15, 0.77, 0.35);
   const moon = new THREE.DirectionalLight(0xcad8f2, 1.5 * (0.75 + 0.5 * MOON.illum)); WIN_LIGHT = moon;   // round two: cooler and about half as strong, brighter near full moon
-  moon.position.copy(moonTarget).add(new THREE.Vector3(2.9, 1.35, -0.5).multiplyScalar(1.2));
+  // v68: from the moon in the window: the Room view's line through it, beyond the glass, raised to about 24 degrees
+  moon.position.copy(moonTarget).add(new THREE.Vector3(0.489, 0.445, -0.872).multiplyScalar(3.5));
   moon.target.position.copy(moonTarget); scene.add(moon.target);
-  moon.castShadow = true; moon.shadow.mapSize.set(SHADOW_BIG, SHADOW_BIG);
-  Object.assign(moon.shadow.camera, { left: -4.5, right: 4.5, top: 3, bottom: -3, near: 0.3, far: 12 });   // covers the whole visible room
-  moon.shadow.radius = 3; moon.shadow.blurSamples = 16; moon.shadow.bias = -0.004; moon.shadow.normalBias = 0.05;   // grazing light: generous bias against banding
+  moon.castShadow = true; moon.shadow.mapSize.set(SH_BIG, SH_BIG); moon.userData.fitShadow = true;   // v67: box fitted to the room at load
+  Object.assign(moon.shadow.camera, { left: -4.5, right: 4.5, top: 3, bottom: -3, near: 0.3, far: 12 });
+  moon.shadow.radius = 3; moon.shadow.bias = -0.0004; moon.shadow.normalBias = 0.006;   // grazing light: a touch more bias than the others
   scene.add(moon);
   // Endcap-style key (2026-11-03): a strong, warm-neutral light high from the front left with soft shadows, so the
   // desk, chair and pedestal sit on the floor with depth and the oak pops against white walls
   const key = new THREE.DirectionalLight(0xf6f2ec, 0.12);           // nearly off: no light from the viewer's side (2026-11-05)           // eased back so the lamp reads as the reason to sit here
   key.position.set(-0.6, 2.5, 3.3); key.target.position.set(0.15, 0.5, 0.3); scene.add(key.target);   // inside the room, below the ceiling
-  key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+  key.castShadow = false; key.shadow.mapSize.set(2048, 2048);   // v67: too faint to show a shadow
   Object.assign(key.shadow.camera, { left: -2.8, right: 2.8, top: 2.6, bottom: -1.8, near: 0.5, far: 10 });
   key.shadow.radius = 7; key.shadow.blurSamples = 16; key.shadow.bias = -0.0005; key.shadow.normalBias = 0.02;
   scene.add(key);
@@ -493,13 +522,34 @@ async function buildRoom(DUST) {
   // ---------- room: simple, geometric, greyscale (Store-scene style). Authored in the Blender inch coordinates ----------
   // Blender (x, y, z) inches -> three (x, z, -y) metres. Back wall on y=0; the nook's left wall at x=-47.
   const U = 0.0254, room = new THREE.Group(); scene.add(room);
+  const PRE_RENDER = [];                                  // v73: passes that need the final camera (the Linen window's blur)
   const EVERY_FRAME = [];                                 // small per-frame updates a setting adds (the rain)
+  { // v67: shadows. Fit each window light's shadow box to the room the camera sees (once, on the first frame), so the
+    // resolution goes where the room is. (How often the maps refresh is decided in tick(), on the page's state.)
+    let fitted = false;
+    const fit = () => {
+      const B = [[-64, 134], [-165, 42], [-3, 108]], c = new THREE.OrthographicCamera(), v = new THREE.Vector3();   // inches: across, out from the back wall, up
+      scene.traverse(o => { if (!o.isDirectionalLight || !o.castShadow || !o.userData.fitShadow) return;
+        o.updateMatrixWorld(); o.target.updateMatrixWorld();
+        c.position.setFromMatrixPosition(o.matrixWorld); c.lookAt(v.setFromMatrixPosition(o.target.matrixWorld)); c.updateMatrixWorld();
+        let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, z0 = 1e9, z1 = -1e9;
+        for (const x of B[0]) for (const y of B[1]) for (const z of B[2]) {
+          v.set(x * U, z * U, -y * U).applyMatrix4(c.matrixWorldInverse);
+          x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); z0 = Math.min(z0, v.z); z1 = Math.max(z1, v.z); }
+        const mx = (x1 - x0) * 0.03, my = (y1 - y0) * 0.03, sc = o.shadow.camera;
+        Object.assign(sc, { left: x0 - mx, right: x1 + mx, bottom: y0 - my, top: y1 + my, near: -z1 - 0.3, far: -z0 + 0.3 });
+        sc.updateProjectionMatrix(); });
+    };
+    EVERY_FRAME.push(() => {
+      if (!fitted && ROOM_KIND === 'nook') { fit(); fitted = true; }
+    });
+  }
   // Room palette (2026-11-04): every room material is one tonal value v (0 = black, 1 = white) mapped through the active
   // palette, so a setting can change the room's colour without touching the desk, folder, lamp or poem.
   // grey: true greyscale (the Endcap look). green: deep tonal greens after Maxx's green-room reference.
   // Pick with ?palette=green, or change ROOM_PALETTE.
   const ROOM_PALETTE = 'grey';
-  const PALETTE = new URLSearchParams(location.search).get('palette') || ROOM_PALETTE;
+  const PALETTE = new URLSearchParams(location.search).get('palette') || (SETTING === 'dress' ? 'colour' : ROOM_PALETTE);   // the dressing room defaults to its own colours (Fable, v58)
   const PALETTES = {
     grey:  v => { const c = Math.round(v * 255); return (c << 16) | (c << 8) | c; },
     green: v => new THREE.Color().setHSL(0.42, 0.72 - 0.34 * v, 0.018 + 0.23 * Math.pow(v, 1.7)).getHex()   // light sage walls, deep forest furniture
@@ -754,6 +804,503 @@ async function buildRoom(DUST) {
     const catcher = new THREE.Mesh(new THREE.PlaneGeometry(0.70, 0.67), new THREE.ShadowMaterial({ opacity: 0.2 }));
     catcher.rotation.x = -Math.PI / 2; catcher.position.set(0.19, 0.7616, 0.31); catcher.receiveShadow = true; scene.add(catcher);
   }
+  // ---------- the dressing room (2026-11-08, after Maxx's references of a boutique's make-up counters; reworked the same
+  // day after Fable's review so it reads as one person's room, not a shop): one round mirror with a lit ring on a wall of
+  // softly backlit vertical oak slats between two wide oak piers; a white counter over oak drawers with knee space under
+  // the mirror; one upholstered shell stool pulled out, a scarf dropped over its back; tomorrow's shirt hooked on the right
+  // pier; a lattice window onto tonight's moon; a narrow strip of horizontal slats with a shelf of bottles; a coat on a
+  // hook. On the counter, only a few personal things in the mirror's light. Default palette: Colour (Grey and Green still
+  // work). Same axes as the Nook: Blender inches, the back wall on y = 0, the room toward the viewer (y < 0).
+  function buildDressing() {
+    const RH = 104, LW = -50, RW = 86, NW = -170, CT = 36, CD = 22;       // height; left, right, near walls; counter top and depth
+    const T = { cx: 0, cy: -CD / 2, w: 30, d: CD, h: CT, inset: 6 };        // the folder's place: the counter under the mirror
+    // light ash-oak grain, drawn once in grey so the palette tints it; a turned copy for horizontal members
+    const gc = document.createElement('canvas'); gc.width = 256; gc.height = 1024;
+    { const g = gc.getContext('2d'); g.fillStyle = '#ececec'; g.fillRect(0, 0, 256, 1024);
+      for (let k = 0; k < 140; k++) { const x = Math.random() * 256, w = 0.6 + Math.random() * 2.4, a = 0.012 + Math.random() * 0.035, sway = Math.random() * 5;
+        g.strokeStyle = `rgba(${Math.random() < 0.8 ? '60,60,60' : '255,255,255'},${a})`; g.lineWidth = w; g.beginPath(); g.moveTo(x, 0);
+        for (let y = 0; y <= 1024; y += 64) g.lineTo(x + Math.sin(y / 180 + k) * sway, y); g.stroke(); } }
+    const grainV = new THREE.CanvasTexture(gc); grainV.encoding = THREE.sRGBEncoding; grainV.wrapS = grainV.wrapT = THREE.RepeatWrapping;
+    const grainH = grainV.clone(); grainH.center.set(0.5, 0.5); grainH.rotation = Math.PI / 2; grainH.needsUpdate = true;
+    const M = {
+      wall: grey(0.93, 0.9, 0, 0xf3f1ec), floor: grey(0.72, 0.45, 0, 0xddd6cb), oak: grey(0.74, 0.62, 0, 0xdcc3a0), oakH: grey(0.74, 0.62, 0, 0xdcc3a0),
+      cab: grey(0.7, 0.6, 0, 0xd6b994), slot: grey(0.3, 0.7, 0, 0x6e5a44), kick: grey(0.2, 0.8, 0, 0x4a4038), soffit: grey(0.3, 0.7, 0, 0x2a2420),
+      brass: grey(0.72, 0.3, 1, 0xc9a66a), steel: grey(0.8, 0.3, 0.9, 0xcfd0d0), fabric: grey(0.58, 0.95, 0, 0xc49c89),
+      amber: grey(0.5, 0.12, 0, 0xc0702c), clear: grey(0.86, 0.08, 0, 0xf0ece4), cap: grey(0.1, 0.4, 0, 0x2b2622),
+      towel: grey(0.92, 0.95, 0, 0xf3efe7), towelB: grey(0.46, 0.95, 0, 0xc0603e), pouch: grey(0.52, 0.55, 0, 0xe0714f),
+      lacquer: grey(0.22, 0.14, 0, 0x7e1f1d), bristle: grey(0.12, 0.9, 0, 0x2a2622), coat: grey(0.5, 0.85, 0, 0xae8a64), shirt: grey(0.92, 0.85, 0, 0xf2f0ea), panel: grey(0.97, 0.6, 0, 0xfbfaf7)
+    };
+    M.oak.map = grainV; M.cab.map = grainV; M.oakH.map = grainH;
+    [M.amber, M.clear].forEach(m => { m.transparent = true; m.opacity = 0.82; });
+    // the counter is the folder's surface, so like the Nook's desk it keeps its own colour in every palette
+    const top = new THREE.MeshStandardMaterial({ color: 0xf4f2ee, roughness: 0.32, metalness: 0 }); top.envMapIntensity = ENV_SUBJECT;
+    const glowC = document.createElement('canvas'); glowC.width = 4; glowC.height = 256;
+    { const g = glowC.getContext('2d'), v = g.createLinearGradient(0, 0, 0, 256);
+      [[0, 1], [0.18, 0.78], [0.5, 0.55], [0.82, 0.78], [1, 1]].forEach(([t, a]) => { const c = Math.round(255 * a); v.addColorStop(t, `rgb(${c},${c},${c})`); });
+      g.fillStyle = v; g.fillRect(0, 0, 4, 256); }
+    const glowTex = new THREE.CanvasTexture(glowC); glowTex.encoding = THREE.sRGBEncoding;
+    const panelGlow = new THREE.MeshBasicMaterial({ color: 0xfff0dc, map: glowTex });     // tone-mapped: bright, not clipped white
+    const glow = new THREE.MeshBasicMaterial({ color: 0xfff6ea });                         // the mirror's ring
+    const dress = new THREE.Group(); room.add(dress);
+    const box = (sx, sy, sz, x, y, z, m, rz) => B(sx, sy, sz, x, y, z, m, rz, dress);
+    const cyl = (r1, r2, h, x, y, z, m, seg) => C(r1, r2, h, x, y, z, m, dress, seg);
+    const V = (x, y, z) => new THREE.Vector3(x * U, z * U, -y * U);
+    function rodTo(a, b, r0, r1, m, parent) {                               // tapered round member between two points (inches)
+      const A = V(...a), Bv = V(...b);
+      const o = new THREE.Mesh(new THREE.CylinderGeometry(r1 * U, r0 * U, A.distanceTo(Bv), 16), m);
+      o.position.copy(A).add(Bv).multiplyScalar(0.5);
+      o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), Bv.clone().sub(A).normalize());
+      o.castShadow = o.receiveShadow = true; (parent || dress).add(o); return o;
+    }
+
+    // floor: large pale stone tiles, 24 in square, with fine joints
+    const fc = document.createElement('canvas'); fc.width = fc.height = 1024;
+    { const g = fc.getContext('2d'); g.fillStyle = '#f2f2f2'; g.fillRect(0, 0, 1024, 1024);
+      for (let k = 0; k < 160; k++) { const x = Math.random() * 1024, y = Math.random() * 1024, r = 30 + Math.random() * 120, gr = g.createRadialGradient(x, y, 0, x, y, r);
+        gr.addColorStop(0, `rgba(0,0,0,${0.012 + Math.random() * 0.025})`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - r, y - r, 2 * r, 2 * r); }
+      g.strokeStyle = 'rgba(0,0,0,0.16)'; g.lineWidth = 2;
+      [1, 512, 1023].forEach(p => { g.beginPath(); g.moveTo(p, 0); g.lineTo(p, 1024); g.stroke(); g.beginPath(); g.moveTo(0, p); g.lineTo(1024, p); g.stroke(); }); }
+    const ftex = new THREE.CanvasTexture(fc); ftex.encoding = THREE.sRGBEncoding; ftex.wrapS = ftex.wrapT = THREE.RepeatWrapping;
+    ftex.anisotropy = renderer.capabilities.getMaxAnisotropy(); ftex.repeat.set((RW - LW) / 48, -NW / 48); M.floor.map = ftex;
+    box(RW - LW, -NW, 1, (LW + RW) / 2, NW / 2, -0.5, M.floor);
+    box(RW - LW, -NW, 1, (LW + RW) / 2, NW / 2, RH + 0.5, M.wall);          // ceiling
+    box(1, -NW, RH, LW - 0.5, NW / 2, RH / 2, M.wall); box(1, -NW, RH, RW + 0.5, NW / 2, RH / 2, M.wall);
+    box(RW - LW, 1, RH, (LW + RW) / 2, NW - 0.5, RH / 2, M.wall);           // near wall, behind the camera
+    // the door on the near wall, seen in the mirror: an oak leaf in a slim frame, a brass pull
+    // placed where the Room view's line of sight lands after the mirror, so the mirror holds the door
+    box(34, 1.2, 84, 50, NW + 0.6, 42, M.cab); box(40, 0.8, 2, 50, NW + 0.4, 85, M.oakH);
+    [31, 69].forEach(x => box(2, 0.8, 86, x, NW + 0.4, 43, M.oak)); rodTo([39, NW + 2.6, 30], [39, NW + 2.6, 52], 0.4, 0.4, M.brass);
+
+    // back wall, built around the lattice window's opening
+    const W = { x0: 50, x1: 72, z0: 47, z1: 92 };
+    box(W.x0 - LW, 1, RH, (LW + W.x0) / 2, 0.5, RH / 2, M.wall);
+    box(RW - W.x1, 1, RH, (W.x1 + RW) / 2, 0.5, RH / 2, M.wall);
+    box(W.x1 - W.x0, 1, W.z0, (W.x0 + W.x1) / 2, 0.5, W.z0 / 2, M.wall);
+    box(W.x1 - W.x0, 1, RH - W.z1, (W.x0 + W.x1) / 2, 0.5, (W.z1 + RH) / 2, M.wall);
+
+    // the counter and the oak drawers under it; knee space under the mirror
+    const KX = 15;
+    box(RW - LW, CD + 1, 1.75, (LW + RW) / 2, -(CD + 1) / 2, CT - 0.875, top);
+    const bays = [[LW, -KX], [KX, 40], [40, 64], [64, RW]];
+    bays.forEach(([a, b]) => {
+      box(b - a, CD - 1, CT - 1.75 - 4, (a + b) / 2, -(CD - 1) / 2, 4 + (CT - 5.75) / 2, M.cab);
+      box(b - a, CD - 4, 4, (a + b) / 2, -(CD - 4) / 2, 2, M.kick);
+      const fy = -CD + 0.95, xs = [a + 0.4, b - 0.4], zt = CT - 1.75;
+      box(0.35, 0.3, zt - 4, a + 0.2, fy, 4 + (zt - 4) / 2, M.slot);         // the reveal between bays
+      [zt - 7, zt - 14.5].forEach(z => box(b - a - 0.8, 0.3, 0.35, (a + b) / 2, fy, z, M.slot));   // two drawers over a door
+      const wide = b - a > 26;
+      if (wide) box(0.35, 0.3, zt - 14.5 - 4, (a + b) / 2, fy, 4 + (zt - 14.5 - 4) / 2, M.slot);   // a pair of doors in wide bays
+      [zt - 3.5, zt - 10.75].forEach(z => { const k = cyl(0.42, 0.42, 0.5, (a + b) / 2, fy - 0.1, z, M.steel, 20); k.rotation.x = Math.PI / 2; });
+      (wide ? [(a + b) / 2 - 2.2, (a + b) / 2 + 2.2] : [(a + b) / 2]).forEach(x => { const k = cyl(0.42, 0.42, 0.5, x, fy - 0.1, zt - 17.5, M.steel, 20); k.rotation.x = Math.PI / 2; });
+    });
+    box(2 * KX, 1, CT - 1.75, 0, -1.5, (CT - 1.75) / 2, M.cab);              // the knee space's back panel
+    box(2 * KX, CD - 2, 1, 0, -(CD - 2) / 2 - 1, CT - 2.25, M.cab);          // its underside
+
+    // the mirror wall: a backlit panel behind vertical oak slats, between two wide oak piers
+    const PX = 30, PW = 13;
+    const lit = new THREE.Mesh(new THREE.PlaneGeometry(2 * PX * U, (RH - CT) * U), panelGlow);
+    lit.position.copy(V(0, -0.2, (CT + RH) / 2)); dress.add(lit);
+    for (let x = -PX + 1.3; x < PX - 0.6; x += 2.65) box(1.15, 2.4, RH - CT, x, -1.6, (CT + RH) / 2, M.oak);
+    [-1, 1].forEach(s => box(PW, 14, RH - CT, s * (PX + PW / 2), -7, (CT + RH) / 2, M.oak));
+    // the one round mirror: a white glowing ring with a thin brass edge, standing off the slats
+    const MZ = 59, MR = 11.6, RR = 14.4;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(MR * U, RR * U, 96), glow); ring.position.copy(V(0, -3.75, MZ)); dress.add(ring);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(RR * U, RR * U, 2.2 * U, 96, 1, true), M.brass);
+    rim.rotation.x = Math.PI / 2; rim.position.copy(V(0, -2.6, MZ)); rim.castShadow = true; dress.add(rim);
+    const lip = new THREE.Mesh(new THREE.CylinderGeometry(MR * U, MR * U, 0.6 * U, 96, 1, true), glow);
+    lip.rotation.x = Math.PI / 2; lip.position.copy(V(0, -3.45, MZ)); dress.add(lip);
+    const plate = new THREE.Mesh(new THREE.CircleGeometry(RR * U, 96), M.panel); plate.position.copy(V(0, -1.55, MZ)); dress.add(plate);
+    let glass;
+    if (THREE.Reflector) {                                    // a true mirror: the room reflected, tone-mapped like the scene
+      glass = new THREE.Reflector(new THREE.CircleGeometry(MR * U, 96), { textureWidth: 1024, textureHeight: 1024, color: 0x8a8a8a, multisample: 4 });
+      glass.material.fragmentShader = glass.material.fragmentShader.replace('#include <encodings_fragment>', '#include <tonemapping_fragment>\n\t\t\t#include <encodings_fragment>');
+    } else glass = new THREE.Mesh(new THREE.CircleGeometry(MR * U, 96), new THREE.MeshStandardMaterial({ color: 0xdfe2e4, metalness: 1, roughness: 0.04 }));
+    glass.position.copy(V(0, -3.2, MZ)); dress.add(glass);
+
+    // the lattice window: an oak frame and an uneven grid of bars, onto the night sky and tonight's moon
+    const WW = W.x1 - W.x0, WH = W.z1 - W.z0, wx = (W.x0 + W.x1) / 2, wz = (W.z0 + W.z1) / 2, F = 1.8;
+    box(F, 4, WH + 2 * F, W.x0 - F / 2, -1.2, wz, M.oak); box(F, 4, WH + 2 * F, W.x1 + F / 2, -1.2, wz, M.oak);
+    box(WW + 2 * F, 4, F, wx, -1.2, W.z1 + F / 2, M.oakH); box(WW + 2 * F, 5, F, wx, -1.7, W.z0 - F / 2, M.oakH);
+    [0.27, 0.55, 0.79].forEach(f => box(0.7, 1.2, WH, W.x0 + WW * f, -0.4, wz, M.oak));
+    [0.11, 0.29, 0.41, 0.6, 0.71, 0.87].forEach(f => box(WW, 1.2, 0.7, wx, -0.4, W.z0 + WH * f, M.oakH));
+    const skyC = document.createElement('canvas'); skyC.width = 512; skyC.height = 768;
+    { const g = skyC.getContext('2d'), v = g.createLinearGradient(0, 0, 0, 768); v.addColorStop(0, '#1c2538'); v.addColorStop(1, '#38404f');
+      g.fillStyle = v; g.fillRect(0, 0, 512, 768);
+      const MX = 418, MY = 261, MRd = 24;                                     // the moon, in a clear upper pane as seen from the Room view
+      g.fillStyle = 'rgba(232,238,248,0.55)'; [[150, 210, 1.2], [330, 190, 1.0], [300, 330, 0.9], [120, 380, 1.1]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });
+      const r = g.createRadialGradient(MX, MY, MRd, MX, MY, 300);
+      r.addColorStop(0, `rgba(214,224,240,${(0.2 + 0.35 * MOON.illum).toFixed(3)})`); r.addColorStop(0.3, 'rgba(150,168,196,0.16)'); r.addColorStop(1, 'rgba(150,168,196,0)');
+      g.fillStyle = r; g.fillRect(0, 0, 512, 768);
+      drawMoonPhase(g, MX, MY, MRd, MOON.age, 'rgba(240,243,248,0.97)', 'rgba(52,64,90,0.45)'); }
+    const skyTex = new THREE.CanvasTexture(skyC); skyTex.encoding = THREE.sRGBEncoding;
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(56 * U, 84 * U), new THREE.MeshBasicMaterial({ map: skyTex }));
+    sky.position.copy(V(wx, 16, wz + 4)); dress.add(sky);
+    // one folded towel on the counter under the window, where the moonlight falls
+    box(11, 8, 1.6, 59, -11, CT + 0.8, M.towel, -6);
+
+    // to the right of the window: a narrow strip of horizontal oak slats with a small shelf of bottles
+    const DX0 = 75.5;
+    for (let z = CT + 2.5; z < RH - 4; z += 3.1) box(RW - DX0, 1.6, 1.5, (DX0 + RW) / 2, -0.8, z, M.oakH);
+    box(1.2, 2, RH - CT, DX0 - 0.6, -1, CT + (RH - CT) / 2, M.oak);
+    box(10, 6, 0.9, 80.5, -3, 56, M.oakH);
+    [[77.5, 6.2, 1.4], [81, 5.2, 1.25], [84, 6.8, 1.35]].forEach(([x, h, r]) => { cyl(r, r, h, x, -3, 56.45 + h / 2, M.amber, 28); cyl(r * 0.45, r * 0.45, 1.3, x, -3, 56.45 + h + 0.65, M.cap, 20); });
+    function scarfTex(seed) {                                                // a generic silk-square pattern (no house designs), in grey for the palette
+      const c = document.createElement('canvas'); c.width = 128; c.height = 512; const g = c.getContext('2d');
+      g.fillStyle = '#dcdcdc'; g.fillRect(0, 0, 128, 512);
+      g.fillStyle = '#7a7a7a'; g.fillRect(0, 0, 10, 512); g.fillRect(118, 0, 10, 512);
+      for (let k = 0; k < 18; k++) { const y = (k * 61 + seed * 37) % 512, r = 8 + (k * 13 + seed * 7) % 22;
+        g.fillStyle = ['#ffffff', '#b4b4b4', '#9a9a9a', '#ececec'][(k + seed) % 4];
+        if ((k + seed) % 3) { g.beginPath(); g.arc(20 + (k * 47 + seed * 19) % 88, y, r, 0, Math.PI * 2); g.fill(); }
+        else g.fillRect(14, y, 100, 6 + r / 3); }
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t;
+    }
+    function garment(len, w, m, sleeve) {                                    // a loose garment silhouette on a hanger, its top at the origin
+      const s = new THREE.Shape(), hw = w / 2, sw = sleeve;
+      s.moveTo(-2.4, 0); s.lineTo(-hw, -2.2); s.lineTo(-hw - 1.2, -6); s.lineTo(-hw - 1.6, -sw); s.lineTo(-hw + 1.4, -sw - 0.5);
+      s.lineTo(-hw + 1.6, -8.5); s.lineTo(-hw - 0.4, -len); s.lineTo(hw + 0.4, -len); s.lineTo(hw - 1.6, -8.5);
+      s.lineTo(hw - 1.4, -sw - 0.5); s.lineTo(hw + 1.6, -sw); s.lineTo(hw + 1.2, -6); s.lineTo(hw, -2.2); s.lineTo(2.4, 0); s.quadraticCurveTo(0, -1.6, -2.4, 0);
+      const geo = new THREE.ExtrudeGeometry(s, { depth: 0.8, bevelEnabled: true, bevelThickness: 0.5, bevelSize: 0.5, bevelSegments: 3, curveSegments: 8 });
+      geo.scale(U, U, U);
+      const g = new THREE.Group(), o = new THREE.Mesh(geo, m); o.position.y = -3.1 * U; o.castShadow = o.receiveShadow = true; g.add(o);
+      [-1, 1].forEach(sx => { const a = new THREE.Vector3(sx * (hw - 0.6) * U, -3.6 * U, 0.6 * U), b = new THREE.Vector3(0, -1.4 * U, 0.6 * U);
+        const r = new THREE.Mesh(new THREE.CylinderGeometry(0.32 * U, 0.32 * U, a.distanceTo(b), 12), M.oak);
+        r.position.copy(a).add(b).multiplyScalar(0.5); r.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); g.add(r); });
+      const hook = new THREE.Mesh(new THREE.TorusGeometry(0.9 * U, 0.12 * U, 8, 24, Math.PI * 1.4), M.brass);
+      hook.position.set(0, -0.4 * U, 0.6 * U); hook.rotation.z = -0.4; g.add(hook);
+      dress.add(g); return g;
+    }
+    // tomorrow's shirt, hooked on a brass peg on the right pier's face
+    const peg = cyl(0.3, 0.3, 1.6, PX + PW / 2, -14.8, 84, M.brass, 12); peg.rotation.x = Math.PI / 2;
+    garment(27, 15, M.shirt, 23).position.copy(V(PX + PW / 2, -15.6, 84));
+    // the coat, on a hook on the right wall
+    const coat = garment(31, 16.5, M.coat, 25); coat.position.copy(V(RW - 1.6, -34, 80)); coat.rotation.y = -Math.PI / 2;
+    const hk = cyl(0.3, 0.3, 1.8, RW - 0.9, -34, 80.6, M.brass, 12); hk.rotation.z = Math.PI / 2;
+
+    // ---- v73 (2026-11-08): the tabletop, after Maxx's photo of a theatre dressing-room vanity. Clustered at the ends of the
+    // counter and kept clear of the folder and the reading view: a glass of make-up brushes, two pots of cold cream, a lidded
+    // apothecary jar of cotton wool, a box of tissues, a porcelain bowl of white flowers, two pump bottles, and a photograph
+    // tucked into the mirror's ring. The lacquer dish, the perfume and the hairbrush stay, moved to fit the groups.
+    const TI = {
+      glass: grey(0.92, 0.05, 0, 0xf2f5f5), porcelain: grey(0.95, 0.25, 0, 0xf4f1ea), petal: grey(0.97, 0.75, 0, 0xf8f5ec),
+      leaf: grey(0.3, 0.7, 0, 0x4d6544), cotton: grey(0.98, 1, 0, 0xfbfaf6), pink: grey(0.78, 0.4, 0, 0xe5b4ad),
+      handleDk: grey(0.1, 0.35, 0, 0x1e1b19), handleLt: grey(0.7, 0.5, 0, 0xc9a77c), hair: grey(0.55, 0.9, 0, 0xb59575),
+      hairDk: grey(0.2, 0.9, 0, 0x3a2e26), card: grey(0.94, 0.85, 0, 0xf3f0e8), frost: grey(0.94, 0.3, 0, 0xeeeeea)
+    };
+    TI.glass.transparent = true; TI.glass.opacity = 0.26; TI.glass.depthWrite = false; TI.glass.side = THREE.DoubleSide;
+    const sph = new THREE.SphereGeometry(1, 14, 10);
+    const blob = (m, sx, sy, sz, x, y, z, parent) => { const o = new THREE.Mesh(sph, m); o.scale.set(sx * U, sz * U, sy * U); o.position.copy(V(x, y, z)); o.castShadow = o.receiveShadow = true; (parent || dress).add(o); return o; };
+    function glassCup(x, y, r, h) {                                         // an open glass tumbler: thin wall, a thick base
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(r * U, r * 0.94 * U, h * U, 40, 1, true), TI.glass); w.position.copy(V(x, y, CT + h / 2)); dress.add(w);
+      cyl(r * 0.94, r * 0.94, 0.5, x, y, CT + 0.25, TI.glass, 40);
+    }
+    // a glass of brushes, left of the mirror: dark and light handles, metal ferrules, soft heads, one fan brush
+    { const bx = -21.5, by = -5.5; glassCup(bx, by, 1.7, 4.6);
+      const UPV = new THREE.Vector3(0, 1, 0);
+      [[0.3, 0.2, 6.6, 0.2, 1, 0], [-0.5, 0.4, 7.2, 0.17, 0, 1], [0.6, -0.5, 5.8, 0.24, 1, 2], [-0.3, -0.6, 7.8, 0.15, 0, 3], [0.1, 0.7, 5.4, 0.26, 1, 3],
+       [-0.8, -0.1, 6.2, 0.19, 0, 2], [0.8, 0.3, 6.9, 0.17, 0, 1], [0, -0.2, 8.2, 0.14, 1, 4]].forEach(([dx, dy, L, r, dark, kind], i) => {
+        const dir = new THREE.Vector3(dx * 0.32, 1, -dy * 0.32).normalize();          // leaning out from the glass's centre
+        const g = new THREE.Group(); g.position.copy(V(bx + dx * 0.9, by + dy * 0.9, CT + 0.5)); g.quaternion.setFromUnitVectors(UPV, dir); dress.add(g);
+        const h = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.8 * U, r * U, L * U, 12), dark ? TI.handleDk : TI.handleLt); h.position.y = L / 2 * U; g.add(h);
+        const f = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.25 * U, r * 0.85 * U, 0.9 * U, 12), M.brass); f.position.y = (L + 0.45) * U; g.add(f);
+        let tip;
+        if (kind === 4) { tip = new THREE.Mesh(new THREE.CircleGeometry(1 * U, 20, 0, Math.PI), TI.hair); tip.material.side = THREE.DoubleSide; tip.position.y = (L + 0.8) * U; }   // the fan brush
+        else {                                                               // a tapered head: full at the ferrule, coming to a soft point
+          const s = [0.42, 0.3, 0.55, 0.22][kind], hl = 0.9 + s * 1.4, pts = [];
+          for (let k = 0; k <= 10; k++) { const t = k / 10; pts.push(new THREE.Vector2(s * Math.sin(Math.PI * (0.18 + 0.82 * t)) * (1 - t * 0.55) * U + 0.001, t * hl * U)); }
+          tip = new THREE.Mesh(new THREE.LatheGeometry(pts, 16), kind === 2 || kind === 3 ? TI.hairDk : TI.hair); tip.position.y = (L + 0.85) * U; }
+        [h, f, tip].forEach(o => { o.castShadow = true; g.add(o); }); });
+    }
+    // two squat pots of cold cream, one lid pink
+    [[-27.5, -8.6, 1.6, M.panel], [-24.4, -11.6, 1.3, TI.pink]].forEach(([x, y, r, lid]) => {   // v75: moved back for the make-up tray
+      cyl(r, r, 1.5, x, y, CT + 0.75, TI.frost, 32); cyl(r * 1.04, r * 1.04, 0.55, x, y, CT + 1.78, lid, 32); });
+    // the lacquer dish with its ring, now in front of the brushes
+    cyl(3, 2.6, 0.9, -17.5, -14.6, CT + 0.45, M.lacquer, 48);
+    { const rj = new THREE.Mesh(new THREE.TorusGeometry(0.55 * U, 0.12 * U, 10, 32), M.brass); rj.rotation.x = Math.PI / 2 - 0.25; rj.position.copy(V(-16.9, -15, CT + 1.05)); dress.add(rj); }
+    // a lidded apothecary jar of cotton wool at the left end, beside the pier
+    { const ax = -46.5, ay = -8, r = 2.3, h = 6;
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(r * U, r * U, h * U, 40, 1, true), TI.glass); w.position.copy(V(ax, ay, CT + h / 2)); dress.add(w);
+      cyl(r, r, 0.5, ax, ay, CT + 0.25, TI.glass, 40);
+      const lid = new THREE.Mesh(new THREE.SphereGeometry(r * 1.05 * U, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), TI.glass); lid.scale.y = 0.45; lid.position.copy(V(ax, ay, CT + h + 0.1)); dress.add(lid);
+      blob(TI.glass, 0.55, 0.55, 0.55, ax, ay, CT + h + 1.3);
+      for (let k = 0; k < 16; k++) { const a = k * 2.4, rr = (k % 4) * 0.45, z = CT + 1.1 + Math.floor(k / 4) * 1.05;
+        blob(TI.cotton, 0.85, 0.8, 0.7, ax + Math.cos(a) * rr, ay + Math.sin(a) * rr, z); } }
+    // a box of tissues in front of the left pier, one pulled up
+    { box(9.5, 5, 4.4, -36, -18.5, CT + 2.2, TI.card); box(4.2, 1.2, 0.05, -36, -18.5, CT + 4.42, M.slot);
+      const t = new THREE.Mesh(new THREE.PlaneGeometry(4.6 * U, 3.6 * U, 6, 6), TI.cotton); const p = t.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++) p.setZ(i, Math.sin(p.getX(i) / U * 1.3 + p.getY(i) / U) * 0.35 * U); t.geometry.computeVertexNormals();
+      t.material.side = THREE.DoubleSide; t.position.copy(V(-36, -18.5, CT + 6.2)); t.rotation.y = 0.2; t.rotation.z = 0.12; t.castShadow = true; dress.add(t); }
+
+    // right of the mirror: the perfume, a porcelain bowl of white flowers, two pump bottles in front of the pier, the hairbrush
+    cyl(1.6, 1.6, 4.4, 19.5, -5, CT + 2.2, M.amber, 32); cyl(0.7, 0.7, 1.4, 19.5, -5, CT + 4.4 + 0.7, M.brass, 20);
+    { const fx = 25.5, fy = -9.5;
+      const bowl = new THREE.Mesh(new THREE.SphereGeometry(4 * U, 40, 16, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), TI.porcelain);
+      bowl.scale.y = 0.62; bowl.material.side = THREE.DoubleSide; bowl.position.copy(V(fx, fy, CT + 3.1)); bowl.castShadow = bowl.receiveShadow = true; dress.add(bowl);
+      cyl(1.8, 2.2, 0.7, fx, fy, CT + 0.35, TI.porcelain, 32);
+      [[0, 0, 4.1, 1.2], [-1.9, 1.2, 3.7, 1], [2, 0.9, 3.8, 1.05], [-0.9, -1.9, 3.6, 0.95], [1.4, -1.6, 3.9, 1], [-2.4, -0.8, 3.4, 0.85]].forEach(([dx, dy, dz, s], j) => {
+        const g = new THREE.Group(); g.position.copy(V(fx + dx, fy + dy, CT + dz)); g.rotation.set((dy) * 0.12, j, -(dx) * 0.12); dress.add(g);
+        for (let k = 0; k < 9; k++) { const a = k / 9 * Math.PI * 2 + j, ring = k % 2 ? 1 : 0.62;               // layered white petals, a carnation's ruffle
+          const p = new THREE.Mesh(sph, TI.petal); p.scale.set(0.95 * s * U, 0.32 * s * U, 0.62 * s * U);
+          p.position.set(Math.cos(a) * ring * s * U, (0.25 - ring * 0.3) * s * U, Math.sin(a) * ring * s * U); p.rotation.set(0, -a, 0.35 * ring); p.castShadow = true; g.add(p); }
+        const c = new THREE.Mesh(sph, TI.petal); c.scale.set(0.5 * s * U, 0.4 * s * U, 0.5 * s * U); c.position.y = 0.3 * s * U; g.add(c); });
+      [[-3.6, 0.6, 3.1, 0.9], [3.4, -1.3, 3.2, -2.4], [0.4, 3.3, 3.3, 1.7]].forEach(([dx, dy, dz, a]) => {
+        const l = blob(TI.leaf, 1.6, 0.7, 0.18, fx + dx, fy + dy, CT + dz); l.rotation.y = a; }); }
+    [[33.5, -18, 1.2, 6.4], [36.6, -17.5, 1.05, 5.4]].forEach(([x, y, r, h]) => {
+      cyl(r, r, h, x, y, CT + h / 2, TI.frost, 32); cyl(0.35, 0.35, 1.2, x, y, CT + h + 0.6, M.panel, 12);
+      box(1.8, 0.45, 0.45, x - 0.6, y, CT + h + 1.2, M.panel); });
+    { const g = new THREE.Group(); g.position.copy(V(24.5, -18.5, CT + 0.6)); g.rotation.y = 0.9; dress.add(g);   // hairbrush, lying bristles down
+      const head = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 32), M.cab); head.scale.set(2.2 * U, 0.9 * U, 3.4 * U); head.position.set(0, 0.25 * U, -2.6 * U);
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 32), M.bristle); pad.scale.set(1.9 * U, 0.5 * U, 3.0 * U); pad.position.set(0, -0.3 * U, -2.6 * U);
+      const handle = new THREE.Mesh(new THREE.BoxGeometry(1.1 * U, 0.75 * U, 5 * U), M.cab); handle.position.set(0, 0.3 * U, 2.6 * U);
+      [head, pad, handle].forEach(o => { o.castShadow = o.receiveShadow = true; g.add(o); }); }
+
+    // a small photograph tucked into the mirror's ring, lower right, its white border showing
+    { const c = document.createElement('canvas'); c.width = 180; c.height = 240; const g = c.getContext('2d');
+      g.fillStyle = '#f4f2ec'; g.fillRect(0, 0, 180, 240);
+      const v = g.createLinearGradient(0, 14, 0, 196); v.addColorStop(0, '#c9c9c6'); v.addColorStop(0.55, '#8d8d8a'); v.addColorStop(1, '#4b4b49');
+      g.fillStyle = v; g.fillRect(12, 14, 156, 182);
+      g.fillStyle = '#3a3a38'; g.beginPath(); g.ellipse(92, 112, 22, 26, 0, 0, Math.PI * 2); g.fill(); g.fillRect(60, 132, 64, 64);   // a figure, soft and indistinct
+      g.fillStyle = 'rgba(255,255,255,0.08)'; for (let k = 0; k < 400; k++) g.fillRect(12 + Math.random() * 156, 14 + Math.random() * 182, 1, 1);
+      const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
+      const m = grey(0.9, 0.7, 0, 0xffffff); m.map = tex;
+      const card = new THREE.Mesh(new THREE.PlaneGeometry(3 * U, 4 * U), m); card.position.copy(V(11.3, -3.55, 47.6)); card.rotation.z = -0.32; card.castShadow = true; dress.add(card); }
+
+    // ---- v75 (2026-11-08): messier, after Maxx's second backstage photo (a lived-in dressing room: a lace runner, a tray of
+    // make-up, loose brushes, stacked tins, letters, fruit, a phone on its cord, a wig stand, cards and photos everywhere).
+    // The middle of the counter, x -12 to 15 in, stays clear for the folder and the reading view.
+    const MX2 = {
+      lace: grey(0.86, 0.9, 0, 0xeee4d2), paper: grey(0.95, 0.85, 0, 0xf5f1e6), kraft: grey(0.62, 0.9, 0, 0xb08a5e),
+      cream: grey(0.88, 0.35, 0, 0xe8dfcb), dark: grey(0.12, 0.45, 0, 0x2a2624), tin: grey(0.78, 0.35, 0.85, 0xc9c3b6),
+      peach: grey(0.6, 0.7, 0, 0xe39a6b), canvas: grey(0.66, 0.85, 0, 0xb79a7c), red: grey(0.3, 0.35, 0, 0x9c2b2b),
+      rose: grey(0.55, 0.4, 0, 0xc8786f), powder: grey(0.84, 0.8, 0, 0xe8cdb6)
+    };
+    MX2.lace.side = THREE.DoubleSide;
+    const tex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; };
+    const flat = (w, d, x, y, z, rz, m) => { const o = new THREE.Mesh(new THREE.PlaneGeometry(w * U, d * U), m); o.rotation.set(-Math.PI / 2, 0, rz || 0);
+      o.position.copy(V(x, y, z)); o.receiveShadow = true; o.castShadow = true; dress.add(o); return o; };
+    const lying = (r1, r2, L, x, y, z, a, m, seg) => { const o = new THREE.Mesh(new THREE.CylinderGeometry(r2 * U, r1 * U, L * U, seg || 16), m);
+      o.rotation.set(0, a, Math.PI / 2); o.position.copy(V(x, y, z)); o.castShadow = o.receiveShadow = true; dress.add(o); return o; };
+
+    // a lace runner under the left-hand things, laid a little askew
+    { const m = MX2.lace.clone(); m.map = tex(512, 640, (g, w, h) => {
+        g.clearRect(0, 0, w, h); g.fillStyle = '#fff';
+        g.beginPath(); g.moveTo(24, 24);                                   // a scalloped edge all round
+        for (let x = 24; x < w - 24; x += 32) g.arc(x + 16, 24, 16, Math.PI, 0);
+        for (let y = 24; y < h - 24; y += 32) g.arc(w - 24, y + 16, 16, -Math.PI / 2, Math.PI / 2);
+        for (let x = w - 24; x > 24; x -= 32) g.arc(x - 16, h - 24, 16, 0, Math.PI);
+        for (let y = h - 24; y > 24; y -= 32) g.arc(24, y - 16, 16, Math.PI / 2, Math.PI * 1.5);
+        g.fill();
+        g.globalCompositeOperation = 'destination-out';                     // open lacework: rings of holes and a net between
+        for (let y = 56; y < h - 40; y += 22) for (let x = 56 + ((y / 22) % 2) * 11; x < w - 40; x += 22) { g.beginPath(); g.arc(x, y, 5.5, 0, Math.PI * 2); g.fill(); }
+        [[w / 2, h / 2, 120], [w / 2, h / 2, 70]].forEach(([cx, cy, r]) => { for (let k = 0; k < 28; k++) { const a = k / 28 * Math.PI * 2;
+          g.beginPath(); g.ellipse(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 9, 4, a, 0, Math.PI * 2); g.fill(); } });
+        g.globalCompositeOperation = 'source-over'; });
+      m.transparent = false; m.alphaTest = 0.5;
+      const o = flat(17.5, 20, -21.5, -11.8, CT + 0.04, 0.06, m); o.castShadow = false; }
+
+    // a tray of make-up: lipsticks lying every way, compacts (one open), a powder puff, a few small pots
+    { const tx = -25.6, ty = -17.4;
+      const t = cyl(4.4, 4.2, 0.35, tx, ty, CT + 0.2, TI.porcelain, 48); t.scale.z = 0.68;
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(4.45 * U, 4.25 * U, 0.75 * U, 48, 1, true), TI.porcelain); rim.material.side = THREE.DoubleSide;
+      rim.scale.z = 0.68; rim.position.copy(V(tx, ty, CT + 0.55)); rim.castShadow = true; dress.add(rim);
+      [[-2.2, -0.4, 0.4, MX2.red], [-0.6, 1.1, 2.1, MX2.rose], [1.6, -1, -0.5, MX2.red], [2.4, 0.9, 1.2, MX2.dark]].forEach(([dx, dy, a, tip]) => {
+        lying(0.36, 0.36, 1.9, tx + dx, ty + dy, CT + 0.75, a, M.brass, 14);
+        const b = lying(0.3, 0.26, 0.9, tx + dx + Math.cos(a) * 1.35, ty + dy + Math.sin(a) * 1.35, CT + 0.75, a, tip, 14); });
+      [[-1.4, 1.9, MX2.dark], [0.9, -0.2, MX2.tin]].forEach(([dx, dy, m]) => cyl(1.15, 1.15, 0.45, tx + dx, ty + dy, CT + 0.6, m, 32));
+      { const lid = new THREE.Mesh(new THREE.CylinderGeometry(1.15 * U, 1.15 * U, 0.2 * U, 32), MX2.dark);   // an open compact, its lid up
+        lid.position.copy(V(tx + 3, ty - 1.9 + 1, CT + 1.45)); lid.rotation.x = -1.2; lid.castShadow = true; dress.add(lid);
+        cyl(1.15, 1.15, 0.3, tx + 3, ty - 1.9, CT + 0.55, MX2.dark, 32); cyl(0.95, 0.95, 0.06, tx + 3, ty - 1.9, CT + 0.72, MX2.powder, 32); }
+      blob(MX2.powder, 1.3, 1.3, 0.45, tx - 2.8, ty + 1.6, CT + 0.95);                               // a powder puff
+      [[0.2, 2.1, MX2.rose], [-3.2, -1.2, TI.frost]].forEach(([dx, dy, m]) => { cyl(0.75, 0.75, 0.75, tx + dx, ty + dy, CT + 0.75, TI.frost, 24); cyl(0.78, 0.78, 0.25, tx + dx, ty + dy, CT + 1.25, m, 24); }); }
+
+    // loose brushes and a pencil left lying at the front, a couple of cotton balls
+    [[-19.8, -20.9, 0.25, 6.4, TI.handleDk, TI.hairDk], [-16.2, -21.4, -0.4, 5.6, TI.handleLt, TI.hair], [-21.5, -19.6, 2.9, 4.6, TI.handleDk, TI.hair]].forEach(([x, y, a, L, hm, tm]) => {
+      lying(0.2, 0.16, L, x, y, CT + 0.22, a, hm, 12);
+      const tip = blob(tm, 0.5, 0.32, 0.3, x + Math.cos(a) * (L / 2 + 0.6), y + Math.sin(a) * (L / 2 + 0.6), CT + 0.3); tip.rotation.y = a; });
+    lying(0.16, 0.16, 6.8, -14.6, -19.4, CT + 0.17, 0.9, TI.handleLt, 6);
+    [[-14, -9.8], [-15.4, -8.9], [-13.3, -11.2]].forEach(([x, y]) => blob(TI.cotton, 0.85, 0.8, 0.6, x, y, CT + 0.55));
+
+    // two cold-cream pots moved to the back, among a few glass bottles of different heights against the slats
+    [[-29, -3.4, 0.95, 5.6], [-26.9, -4.2, 0.8, 3.8], [-25, -3.3, 0.7, 7]].forEach(([x, y, r, h], i) => {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.75 * U, r * U, h * U, 24), TI.glass); w.position.copy(V(x, y, CT + h / 2)); dress.add(w);
+      cyl(r * 0.4, r * 0.4, 1, x, y, CT + h + 0.5, i % 2 ? M.brass : MX2.dark, 16); });
+
+    // left end: a stack of pancake tins and one open, a bottle knocked over, a crumpled tissue
+    [[0, 0, 0], [0.2, -0.15, 0.62], [-0.15, 0.1, 1.24]].forEach(([dx, dy, dz]) => cyl(2, 2, 0.6, -46 + dx, -16.2 + dy, CT + 0.3 + dz, MX2.tin, 40));
+    cyl(1.8, 1.8, 0.5, -43.6, -20.4, CT + 0.25, MX2.tin, 40); cyl(1.6, 1.6, 0.05, -43.6, -20.4, CT + 0.52, MX2.powder, 40);
+    { const lid = cyl(1.85, 1.85, 0.25, -47.6, -20.9, CT + 0.6, MX2.tin, 40); lid.rotation.x = 0.35; }
+    lying(0.95, 0.95, 4.6, -47.2, -12.3, CT + 0.95, 0.15, TI.frost, 24); lying(0.45, 0.45, 0.9, -44.5, -11.9, CT + 0.95, 0.15, M.panel, 12);
+    [[-30.9, -21.6, 1], [-48.5, -21.3, 0.8]].forEach(([x, y, s]) => { const c = blob(TI.cotton, 1.1 * s, 0.95 * s, 0.8 * s, x, y, CT + 0.7 * s);
+      c.geometry = new THREE.IcosahedronGeometry(1, 1); const p = c.geometry.attributes.position;
+      for (let i = 0; i < p.count; i++) { const k = 0.7 + 0.45 * Math.abs(Math.sin(i * 12.9898) * 43758.5 % 1); p.setXYZ(i, p.getX(i) * k, p.getY(i) * k, p.getZ(i) * k); }
+      c.geometry.computeVertexNormals(); });
+
+    // right of the mirror: a peach, a lipstick left out with its cap off, a little bottle on its side by the pump bottles
+    { const p = blob(MX2.peach, 1.35, 1.35, 1.3, 17.6, -17.6, CT + 1.25); }
+    lying(0.36, 0.36, 2, 18.7, -12.6, CT + 0.37, 0.25, M.brass, 14); lying(0.3, 0.24, 0.8, 20.1, -12.25, CT + 0.37, 0.25, MX2.red, 14);
+    lying(0.4, 0.4, 1.6, 17.2, -11.6, CT + 0.41, 1.4, M.brass, 14);
+    lying(0.85, 0.85, 3.6, 40.2, -20.6, CT + 0.85, -0.25, TI.frost, 24); lying(0.35, 0.35, 0.8, 42.4, -21.2, CT + 0.85, -0.25, M.panel, 12);
+
+    // a cream rotary telephone on its cord, by the window
+    { const g = new THREE.Group(); g.position.copy(V(47, -10.8, CT)); g.rotation.y = 0.35; dress.add(g);
+      const add = (geo, m, x, y, z, rx) => { const o = new THREE.Mesh(geo, m); o.position.set(x * U, y * U, z * U); if (rx) o.rotation.x = rx; o.castShadow = o.receiveShadow = true; g.add(o); return o; };
+      add(new THREE.BoxGeometry(7 * U, 1.4 * U, 8.4 * U), MX2.cream, 0, 0.7, 0);
+      const body = add(new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), MX2.cream, 0, 1.3, 0); body.scale.set(3.4 * U, 2.4 * U, 4 * U);
+      const dial = add(new THREE.CylinderGeometry(2.1 * U, 2.1 * U, 0.35 * U, 40), M.panel, 0, 2.6, 2.4, 0.55);
+      for (let k = 0; k < 10; k++) { const a = -0.5 + k * 0.48, h = add(new THREE.CylinderGeometry(0.26 * U, 0.26 * U, 0.4 * U, 12), MX2.dark, Math.cos(a) * 1.45, 2.6 + Math.sin(a) * 1.45 * Math.sin(0.55) * 0.9, 2.4 + Math.sin(a) * 1.45 * Math.cos(0.55) * -0.6 + 0.05, 0.55); }
+      [-2.6, 2.6].forEach(x => add(new THREE.BoxGeometry(1.4 * U, 1.3 * U, 2.6 * U), MX2.cream, x * 0.42, 3.9, -0.6));   // the cradle's two rests
+      const hand = add(new THREE.CapsuleGeometry(0.62 * U, 6.2 * U, 6, 16), MX2.cream, 0, 4.7, -0.6); hand.rotation.z = Math.PI / 2;
+      [-1, 1].forEach(s => { const e = add(new THREE.CylinderGeometry(1.15 * U, 0.9 * U, 1.3 * U, 24), MX2.cream, s * 3.4, 4.25, -0.6); });
+      // the coiled cord: from the handset's end down to the counter and away behind the phone
+      const pts = []; const A = new THREE.Vector3(-3.6, 3.7, -0.6), Bp = new THREE.Vector3(-5.5, 0.3, 2.5), Cp = new THREE.Vector3(-3.5, 0.3, 6.8), D = new THREE.Vector3(1.5, 0.3, 5.5);
+      const path = new THREE.CatmullRomCurve3([A, Bp, Cp, D, new THREE.Vector3(3.8, 1.2, 0.5)]);
+      const N = 420, frames = path.computeFrenetFrames(N, false);
+      for (let i = 0; i <= N; i++) { const t = i / N, p = path.getPointAt(t), a = t * 140, r = 0.38;
+        pts.push(p.clone().add(frames.normals[i].clone().multiplyScalar(Math.cos(a) * r)).add(frames.binormals[i].clone().multiplyScalar(Math.sin(a) * r)).multiplyScalar(U)); }
+      add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 1400, 0.09 * U, 6, false), MX2.cream, 0, 0, 0); }
+
+    // under the window: letters fanned out, an opened envelope, partly under the towel
+    const scrawl = (seed) => tex(300, 420, (g, w, h) => { g.fillStyle = '#f6f2e8'; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(40,40,60,0.55)'; g.lineWidth = 1.6;
+      for (let y = 44; y < h - 30; y += 17) { g.beginPath(); let x = 26 + (y === 44 ? 60 : 0); g.moveTo(x, y);
+        const end = w - 26 - ((y * 7 + seed * 13) % 60); while (x < end) { x += 4 + ((x + y + seed) % 5); g.lineTo(x, y + Math.sin(x * 0.7 + seed) * 2.2); } g.stroke(); } });
+    [[55.2, -17.4, 0.38, 1], [60.6, -19.2, -0.22, 2], [57.6, -15.2, 0.1, 3]].forEach(([x, y, a, s]) => { const m = MX2.paper.clone(); m.map = scrawl(s); m.side = THREE.DoubleSide; flat(6, 8.4, x, y, CT + 0.03 + s * 0.012, a, m); });
+    { const m = MX2.paper.clone(); m.side = THREE.DoubleSide; flat(7, 4, 64.6, -14.6, CT + 0.07, -0.5, m);
+      const f = new THREE.Mesh(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-3.5, 0, 0), new THREE.Vector3(3.5, 0, 0), new THREE.Vector3(0, 0, 2.4)].map(v => v.multiplyScalar(U))), m);
+      f.geometry.setIndex([0, 1, 2]); f.geometry.computeVertexNormals(); f.position.copy(V(64.6, -14.6, CT + 0.12)); f.rotation.set(0.25, -0.5, 0);
+      f.position.add(new THREE.Vector3(Math.sin(-0.5) * 2 * U, 0, -Math.cos(-0.5) * 2 * U)); dress.add(f); }
+
+    // greeting cards standing open, and a wig stand under the bottle shelf, with a little radio
+    const cardTex = (k) => tex(160, 220, (g, w, h) => { g.fillStyle = '#f7f3ea'; g.fillRect(0, 0, w, h);
+      g.fillStyle = ['#e7a7a0', '#9fb8c9', '#e3c07a'][k]; g.beginPath(); g.ellipse(w / 2, h * 0.55, w * 0.3, h * 0.24, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(60,50,40,0.6)'; g.fillRect(w * 0.2, h * 0.12, w * 0.6, 10); });
+    [[70.6, -12.4, 0.4, 0], [73.6, -16.8, -0.3, 1], [68.2, -18.6, 0.9, 2]].forEach(([x, y, a, k]) => {
+      const g = new THREE.Group(); g.position.copy(V(x, y, CT)); g.rotation.y = a; dress.add(g);
+      const m = MX2.paper.clone(); m.map = cardTex(k); m.side = THREE.DoubleSide;
+      [-1, 1].forEach(s => { const p = new THREE.Mesh(new THREE.PlaneGeometry(3.4 * U, 4.8 * U), m); p.position.set(0, 2.35 * U, s * 0.55 * U); p.rotation.x = s * 0.24; p.castShadow = true; g.add(p); }); });
+    { const wx = 80, wy = -6.5;
+      cyl(2.4, 2.6, 0.5, wx, wy, CT + 0.25, MX2.dark, 32); cyl(0.32, 0.32, 5.6, wx, wy, CT + 3.3, M.brass, 12);
+      cyl(1.05, 1.25, 2.6, wx, wy, CT + 7.1, MX2.canvas, 24);
+      const head = blob(MX2.canvas, 3.1, 3.6, 4.3, wx, wy - 0.3, CT + 11.6); head.geometry = new THREE.SphereGeometry(1, 40, 24); }
+    { const g = new THREE.Group(); g.position.copy(V(81.5, -17.2, CT)); g.rotation.y = -0.4; dress.add(g);
+      const r = new THREE.Mesh(new THREE.BoxGeometry(6.4 * U, 4 * U, 2.2 * U), MX2.cream); r.position.y = 2 * U; r.castShadow = r.receiveShadow = true; g.add(r);
+      const gr = new THREE.Mesh(new THREE.PlaneGeometry(3.6 * U, 2.8 * U), MX2.lace.clone()); gr.material.map = tex(64, 64, (x, w, h) => { x.fillStyle = '#7d7468'; x.fillRect(0, 0, w, h);
+        x.fillStyle = '#2a2624'; for (let i = 4; i < w; i += 6) for (let j = 4; j < h; j += 6) { x.beginPath(); x.arc(i, j, 1.6, 0, 7); x.fill(); } });
+      gr.position.set(-1.1 * U, 2 * U, 1.11 * U); g.add(gr);
+      const d = new THREE.Mesh(new THREE.CylinderGeometry(0.9 * U, 0.9 * U, 0.3 * U, 24), M.brass); d.rotation.x = Math.PI / 2; d.position.set(2.1 * U, 2 * U, 1.2 * U); g.add(d);
+      const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.08 * U, 0.08 * U, 7 * U, 6), M.steel); ant.position.set(2.6 * U, 6.5 * U, -0.5 * U); ant.rotation.z = -0.35; g.add(ant); }
+
+    // photographs and postcards: a photo-booth strip in the mirror's ring, two cards pinned to the left pier
+    const photo = (w, h, n) => tex(w, h, (g) => { g.fillStyle = '#f4f2ec'; g.fillRect(0, 0, w, h);
+      for (let i = 0; i < n; i++) { const y0 = 10 + i * (h - 10) / n, hh = (h - 10) / n - 10;
+        const v = g.createLinearGradient(0, y0, 0, y0 + hh); v.addColorStop(0, '#bdbdba'); v.addColorStop(1, '#575755'); g.fillStyle = v; g.fillRect(10, y0, w - 20, hh);
+        g.fillStyle = '#3c3c3a'; g.beginPath(); g.ellipse(w / 2 + (i % 2 ? 6 : -4), y0 + hh * 0.48, w * 0.15, hh * 0.24, 0, 0, 7); g.fill(); g.fillRect(w * 0.3, y0 + hh * 0.66, w * 0.4, hh * 0.34); } });
+    { const m = grey(0.9, 0.7, 0, 0xffffff); m.map = photo(90, 330, 4); const s = new THREE.Mesh(new THREE.PlaneGeometry(1.5 * U, 5.4 * U), m);
+      s.position.copy(V(-11.6, -3.55, 50.5)); s.rotation.z = 0.2; s.castShadow = true; dress.add(s); }
+    [[-38.5, 70, 0.08, 3.8, 2.6], [-33.4, 64.5, -0.12, 3, 4]].forEach(([x, z, a, w, h]) => {
+      const m = grey(0.9, 0.7, 0, 0xffffff); m.map = w > h ? tex(240, 170, (g, W, H) => { g.fillStyle = '#efe9dc'; g.fillRect(0, 0, W, H);
+        const v = g.createLinearGradient(0, 0, W, H); v.addColorStop(0, '#a9b9c4'); v.addColorStop(1, '#d9c9a6'); g.fillStyle = v; g.fillRect(9, 9, W - 18, H - 18); }) : photo(150, 200, 1);
+      const o = new THREE.Mesh(new THREE.PlaneGeometry(w * U, h * U), m); o.position.copy(V(x, -14.05, z)); o.rotation.z = a; o.castShadow = true; dress.add(o);
+      cyl(0.22, 0.22, 0.3, x, -14.2, z + h / 2 - 0.4, MX2.red, 12).rotation.x = Math.PI / 2; });
+
+    // v75, second pass: denser, as in the photo: more bottles crowding the back, a string of pearls trailing from the dish,
+    // a standing frame, scripts and a notebook by the phone, cards tucked between the slats
+    [[-14.2, -3.7, 0.6, 4.6, MX2.dark], [-16.1, -4.4, 0.75, 3.2, M.brass], [-17.8, -3.5, 0.55, 6.1, MX2.dark], [16.6, -3.6, 0.6, 3.6, M.brass], [-44.2, -3.4, 0.8, 5.2, M.brass], [-41.6, -3.3, 0.65, 3.4, MX2.dark]].forEach(([x, y, r, h, cap]) => {
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.8 * U, r * U, h * U, 20), TI.glass); w.position.copy(V(x, y, CT + h / 2)); dress.add(w);
+      cyl(r * 0.45, r * 0.45, 0.8, x, y, CT + h + 0.4, cap, 14); });
+    { const curve = new THREE.CatmullRomCurve3([[-16.6, -13.4], [-15.4, -15.6], [-14.4, -17.2], [-15.6, -18.4], [-13.6, -19.1], [-13.2, -17.8]].map(([x, y], i) => V(x, y, CT + (i ? 0.22 : 1.0))));
+      const n = 48, pm = grey(0.95, 0.25, 0, 0xf4efe4), pearls = new THREE.InstancedMesh(new THREE.SphereGeometry(0.22 * U, 10, 8), pm, n), mm = new THREE.Matrix4();
+      for (let i = 0; i < n; i++) { mm.setPosition(curve.getPointAt(i / (n - 1))); pearls.setMatrixAt(i, mm); } pearls.castShadow = true; dress.add(pearls); }
+    { const g = new THREE.Group(); g.position.copy(V(-47.6, -2.6, CT)); g.rotation.y = 0.35; dress.add(g);   // a small standing frame
+      const f = new THREE.Mesh(new THREE.BoxGeometry(4.2 * U, 5.4 * U, 0.45 * U), MX2.dark); f.position.y = 2.6 * U; f.rotation.x = -0.18; f.castShadow = true; g.add(f);
+      const m = grey(0.9, 0.7, 0, 0xffffff); m.map = photo(150, 200, 1); const p = new THREE.Mesh(new THREE.PlaneGeometry(3.4 * U, 4.6 * U), m);
+      p.position.set(0, 2.6 * U, 0.24 * U); p.rotation.x = -0.18; p.position.y += 0.04 * U; g.add(p); }
+    [[46.8, -19.6, 0.12, 0, 8.4, 6, MX2.dark], [47.4, -19.3, -0.05, 0.5, 8, 5.6, MX2.paper], [46.6, -19.8, 0.2, 0.95, 8.2, 5.8, MX2.paper], [47.6, -19.2, -0.18, 1.3, 7.4, 5.2, MX2.red]].forEach(([x, y, a, z, w, d, m]) =>
+      box(w, d, 0.42, x, y, CT + 0.21 + z, m, a * 57.3));
+    lying(0.17, 0.17, 5.4, 46.2, -20.4, CT + 1.72, 0.5, MX2.dark, 8);
+    [[-9.6, 72, 0.15], [-25.5, 80, -0.1], [24.8, 76, 0.22]].forEach(([x, z, a], i) => {
+      const m = grey(0.9, 0.7, 0, 0xffffff); m.map = i === 1 ? cardTex(1) : photo(120, 160, 1);
+      const o = new THREE.Mesh(new THREE.PlaneGeometry(2.6 * U, 3.5 * U), m); o.position.copy(V(x, -2.95, z)); o.rotation.z = a; o.castShadow = true; dress.add(o); });
+
+    // a paper shopping bag left on the floor, its rope handles fallen to one side
+    { const g = new THREE.Group(); g.position.copy(V(60, -36, 0)); g.rotation.y = 0.5; dress.add(g);
+      const W = 12, D = 5.5, H = 14, t = 0.1;
+      [[W, t, H, 0, D / 2], [W, t, H, 0, -D / 2], [t, D, H, W / 2, 0], [t, D, H, -W / 2, 0], [W, D, t, 0, 0]].forEach(([a, b, c, x, y], i) => {
+        const o = new THREE.Mesh(new THREE.BoxGeometry(a * U, (i === 4 ? t : c) * U, (i === 4 ? b : b) * U), MX2.kraft);
+        o.position.set(x * U, (i === 4 ? t / 2 : H / 2) * U, y * U); o.castShadow = o.receiveShadow = true; g.add(o); });
+      [-1, 1].forEach(s => { const h = new THREE.Mesh(new THREE.TorusGeometry(2.6 * U, 0.14 * U, 8, 24, Math.PI), MX2.dark); h.position.set(0, H * U, s * (D / 2 + 0.2) * U); h.rotation.x = s * 1.15; h.castShadow = true; g.add(h); });
+      const tissue = new THREE.Mesh(new THREE.ConeGeometry(3.2 * U, 4 * U, 7, 1, true), TI.cotton); tissue.material.side = THREE.DoubleSide; tissue.position.set(0.8 * U, (H + 1.4) * U, 0); tissue.rotation.z = 0.25; g.add(tissue); }
+
+    // one upholstered shell stool, pulled out from the counter to the right of the folder, as if just stood up from
+    function stool(x, y, face) {
+      const g = new THREE.Group(); g.position.copy(V(x, y, 0)); g.rotation.y = face * Math.PI / 180; dress.add(g);
+      const SH = 25.5;
+      const seat = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 20), M.fabric); seat.scale.set(9 * U, 1.9 * U, 8.6 * U); seat.position.y = (SH + 0.5) * U;
+      const bowl = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 14, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M.fabric); bowl.scale.set(9.4 * U, 3.4 * U, 9 * U); bowl.position.y = (SH + 0.6) * U;
+      // the back: a curved upholstered panel wrapped around the sitter, its top edge a shield-like arc, highest at the centre
+      const H = 15, bg = new THREE.CylinderGeometry(9.4, 8.6, H, 64, 12, true, -1.8, 3.6), bp = bg.attributes.position;
+      for (let i = 0; i < bp.count; i++) { const x = bp.getX(i), z = bp.getZ(i), a = Math.atan2(x, z), f = (bp.getY(i) + H / 2) / H;
+        const top = H * (0.42 + 0.58 * Math.pow(Math.max(0, Math.cos(a * 0.82)), 0.8));
+        const lean = 1 + 0.06 * f;                                           // flares a little toward the top
+        bp.setXYZ(i, x * lean, f * top, z * lean); }
+      bg.computeVertexNormals(); bg.scale(U, U, U);
+      const back = new THREE.Mesh(bg, M.fabric); back.position.y = (SH + 0.4) * U; back.material.side = THREE.DoubleSide;
+      [seat, bowl, back].forEach(o => { o.castShadow = o.receiveShadow = true; g.add(o); });
+      const P3 = (a, h, b) => new THREE.Vector3(a * U, h * U, b * U);
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b]) => {
+        const t = P3(a * 4.6, SH - 2.6, b * 4.4), f = P3(a * 7.6, 0, b * 7.3);
+        const o = new THREE.Mesh(new THREE.CylinderGeometry(0.3 * U, 0.26 * U, t.distanceTo(f), 12), M.brass);
+        o.position.copy(t).add(f).multiplyScalar(0.5); o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), t.clone().sub(f).normalize());
+        o.castShadow = true; g.add(o); });
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(9.1 * U, 0.26 * U, 10, 48), M.brass); ring.rotation.x = Math.PI / 2; ring.position.y = 9 * U; ring.castShadow = true; g.add(ring);
+      // a silk scarf dropped over the back: a long tail down the outside, a short one inside (stool-local inches; the back is +z)
+      const sm = grey(0.62, 0.62, 0, 0xd9673b); sm.map = scarfTex(3); sm.side = THREE.DoubleSide;
+      const topZ = SH + 0.4 + H + 0.35, bz = 9.95;
+      const path = new THREE.CatmullRomCurve3([[1.5, SH - 6, bz + 2.6], [1.2, SH + 3, bz + 1.6], [0.6, topZ - 3, bz + 0.9], [0, topZ, bz - 0.1], [-0.4, topZ - 2.5, bz - 1.4], [-0.6, topZ - 7, bz - 1.9]]
+        .map(([x, y, z]) => new THREE.Vector3(x * U, y * U, z * U))).getPoints(40);
+      const pos = [], uv = [], idx = [];
+      path.forEach((p, i) => { const t = i / (path.length - 1), w = (4.6 + Math.sin(t * 9) * 0.5) * U / 2, tw = 0.25 * Math.sin(t * 5);
+        [-1, 1].forEach(s => { pos.push(p.x + s * w * Math.cos(tw), p.y + s * w * Math.sin(tw) * 0.3, p.z + s * w * Math.sin(tw)); uv.push((s + 1) / 2, t); });
+        if (i) { const a = 2 * i; idx.push(a - 2, a - 1, a, a - 1, a + 1, a); } });
+      const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); sg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); sg.setIndex(idx); sg.computeVertexNormals();
+      const scarf = new THREE.Mesh(sg, sm); scarf.castShadow = scarf.receiveShadow = true; g.add(scarf);
+      return g;
+    }
+    stool(34, -34, -30);
+    return { T, MZ };
+  }
+
+  if (SETTING === 'dress') {
+    CAFE = buildDressing();      // the folder's surface uses the café's table hook (CAFE.T)
+    // night in the dressing room: the backlit slats and the mirror's ring are the room's light; the mirror's light falls
+    // on the counter and is the scene's highlight (eased down in the reading view). Moonlight comes through the lattice
+    // window and lays its grid across the counter and the floor. One ceiling light on the bottle strip and coat.
+    renderer.toneMappingExposure = 0.85;
+    scene.add(new THREE.HemisphereLight(0xf4f1ea, 0x5a5550, 0.1));
+    const T = CAFE.T, tgt = new THREE.Vector3(T.cx * U, T.h * U, -(T.cy - 2) * U);
+    const vanity = new THREE.SpotLight(0xfff1de, 6, 3.2, 62 * Math.PI / 180, 0.9, 1.4);
+    vanity.position.set(0, CAFE.MZ * U, 5 * U); vanity.target.position.copy(tgt); scene.add(vanity.target);
+    vanity.castShadow = true; vanity.shadow.mapSize.set(2048, 2048); vanity.shadow.radius = 6; vanity.shadow.bias = -0.0006; vanity.shadow.normalBias = 0.01;
+    vanity.shadow.camera.near = 0.05; vanity.shadow.camera.far = 3.5;
+    scene.add(vanity); LAMP = vanity; LAMP_LO = 2.2; LAMP_HI = 6;
+    [-18, 18].forEach(x => { const p = new THREE.PointLight(0xfff5e8, 0.9, 2.2, 2); p.position.set(x * U, 70 * U, 14 * U); scene.add(p); });
+    const mt = new THREE.Vector3(58 * U, 14 * U, 40 * U);                   // moonlight: down through the window toward the viewer
+    const moon = new THREE.DirectionalLight(0xcad8f2, 0.9 * (0.75 + 0.5 * MOON.illum)); WIN_LIGHT = moon;
+    moon.position.copy(mt).add(new THREE.Vector3(0.18, 2.6, -2.2)); moon.target.position.copy(mt); scene.add(moon.target);
+    moon.castShadow = true; moon.shadow.mapSize.set(4096, 4096);
+    Object.assign(moon.shadow.camera, { left: -2.6, right: 2.6, top: 3, bottom: -3, near: 0.3, far: 9 });
+    moon.shadow.radius = 1.2; moon.shadow.blurSamples = 16; moon.shadow.bias = -0.002; moon.shadow.normalBias = 0.03;
+    scene.add(moon);
+    [[80, 0]].forEach(([x]) => { const w = new THREE.SpotLight(0xffe7c8, 2.4, 3, 34 * Math.PI / 180, 0.7, 1.5);   // one ceiling light on the bottle strip and coat
+      w.position.set(x * U, 100 * U, 16 * U); w.target.position.set(x * U, 56 * U, 2 * U); scene.add(w.target);
+      w.castShadow = true; w.shadow.mapSize.set(1024, 1024); w.shadow.radius = 5; w.shadow.bias = -0.0008; w.shadow.camera.near = 0.1; w.shadow.camera.far = 3.2; scene.add(w); });
+    { const f = new THREE.PointLight(0xfff0e0, 0.25, 3.5, 2); f.position.set(50 * U, 80 * U, 140 * U); scene.add(f); }   // a little light on the near wall's door, for the mirror
+    const key = new THREE.DirectionalLight(0xfff4e6, 0.12);
+    key.position.set(-1.2, 2.4, 4.2); key.target.position.copy(tgt); scene.add(key.target);
+    key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+    Object.assign(key.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 9 });
+    key.shadow.radius = 8; key.shadow.blurSamples = 16; key.shadow.bias = -0.0006; key.shadow.normalBias = 0.02;
+    scene.add(key);
+  }
   if (SETTING === 'cafe') {
     CAFE = buildCafe();
     // dusk in the café: moonlight comes in through the street front and lays the window shapes across the floor toward
@@ -764,7 +1311,7 @@ async function buildRoom(DUST) {
     const mt = new THREE.Vector3(-0.6, 0, 3.6);
     const moon = new THREE.DirectionalLight(0xe6edfa, 1.45);
     moon.position.copy(mt).add(new THREE.Vector3(-1.4, 3.0, -6.2)); moon.target.position.copy(mt); scene.add(moon.target);
-    moon.castShadow = true; moon.shadow.mapSize.set(SHADOW_BIG, SHADOW_BIG);
+    moon.castShadow = true; moon.shadow.mapSize.set(SH_BIG, SH_BIG);
     Object.assign(moon.shadow.camera, { left: -5.5, right: 5.5, top: 6, bottom: -6, near: 0.5, far: 18 });
     moon.shadow.radius = 3; moon.shadow.blurSamples = 16; moon.shadow.bias = -0.002; moon.shadow.normalBias = 0.04;
     scene.add(moon);
@@ -830,7 +1377,7 @@ async function buildRoom(DUST) {
         P({ outerX: 126, innerX: WX1 - 6, flatW: 34, folds: 6, rings: 6, ringSag: 0.5, tieX: 123, tieZ: 52, tieD: 8.4, bundleW: 4.2, belly: 3, billow: 1.4, floorW: 12, floorBias: 0.4, puddle: 1.5, seed: 6.1 }) ] };
     return { cloth: '#d6bf9b', weaveLight: '255,245,225', weaveDark: '90,66,40', band: 0xd9c6a6, glow: 0xf5b26a, glowI: 1.15, ceiling: 1e9,
       rodX0: WX0 - 22, rodX1: WX1 + 22, panels: [
-        P({ outerX: WX0 - 13, innerX: WX0 + 16, flatW: 60, tieX: WX0 - 8, tieZ: 44 }),
+        P({ outerX: WX0 - 10, innerX: WX0 + 12, flatW: 44, folds: 7, free: true, lift: 10, hem: 5, opacity: 0.74, glowI: 0.95, seed: 2.9 }),   // v58: untied, lifting on the breeze
         P({ outerX: WX1 + 19, innerX: WX1 - 4, flatW: 50, folds: 8, rings: 8, ringSag: 0.55, tieX: WX1 + 12, tieZ: 51, tieD: 8.6, bundleW: 4.8, belly: 4, billow: 1.6, floorW: 15, floorBias: 0.38, puddle: 1.5, seed: 4.1 }) ] };
   }
   if (LINEN) buildLinen(); else buildCurtains(curtainsFor(RAIN ? 'rain' : 'nook'));
@@ -875,36 +1422,65 @@ async function buildRoom(DUST) {
         const c = n.getContext('2d', { willReadFrequently: true }); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(src, 0, 0, n.width, n.height); src = n; }
       g.globalAlpha = 0.55; g.imageSmoothingQuality = 'high'; g.drawImage(src, 0, 0, OW, OH); g.globalAlpha = 1;
       // the sun's glow, low and a little right of centre: it swallows everything near it
-      const r = g.createRadialGradient(600, 820, 0, 600, 820, 900);
+      const r = g.createRadialGradient(170, 120, 0, 170, 120, 980);           // v68: the sun up and to the left, beyond the frame, where its light comes from
       r.addColorStop(0, 'rgba(255,252,242,1)'); r.addColorStop(0.18, 'rgba(255,244,222,0.95)'); r.addColorStop(0.45, 'rgba(255,226,186,0.55)'); r.addColorStop(1, 'rgba(255,214,170,0)');
       g.fillStyle = r; g.fillRect(0, 0, OW, OH);
       const d = g.getImageData(0, 0, OW, OH), px = d.data;                          // dither: no banding in the long gradients
       for (let k = 0; k < px.length; k += 4) { const n = (Math.random() - 0.5) * 3; px[k] += n; px[k + 1] += n; px[k + 2] += n; }
       g.putImageData(d, 0, 0); }
     const ot = new THREE.CanvasTexture(oc); ot.encoding = THREE.sRGBEncoding; ot.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    const out = new THREE.Mesh(new THREE.PlaneGeometry(80 * U, 100 * U), new THREE.MeshBasicMaterial({ map: ot, toneMapped: false }));
+    const out = new THREE.Mesh(new THREE.PlaneGeometry(80 * U, 100 * U), new THREE.MeshBasicMaterial({ map: ot, toneMapped: false, fog: false }));
     out.material.color.setRGB(1.16, 1.0, 0.82);                                      // brighter than the screen can show: the middle burns out
     out.position.set(((WX0 + WX1) / 2 + 4) * U, cz * U, -14 * U); room.add(out);
     // bloom: glow textures made from the distance to the window opening, added on top of whatever is behind them
-    const bloomTex = (W, H, padX, padY, fall, core, inner) => {
+    const bloomTex = (W, H, padX, padY, fall, core, inner, feather = 1) => {
       const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true });
       const d = x.createImageData(W, H), px = d.data, hx = (W / 2 - padX), hy = (H / 2 - padY);
       for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
         const dx = Math.max(0, Math.abs(i + 0.5 - W / 2) - hx) / padX, dy = Math.max(0, Math.abs(j + 0.5 - H / 2) - hy) / padY;
         const inside = Math.abs(i + 0.5 - W / 2) < hx && Math.abs(j + 0.5 - H / 2) < hy;
-        const dist = Math.hypot(dx, dy), cy = (j / H - 0.62), cx = (i / W - 0.55);
-        let a = inside ? core * inner * (0.55 + 0.45 * Math.exp(-(cx * cx * 6 + cy * cy * 5))) : Math.exp(-dist * fall) * core * 0.85;   // v48: lighter over the glass itself, so the branches beyond keep their darks
+        const dist = Math.hypot(dx, dy), cy = (j / H - 0.25), cx = (i / W - 0.3);   // v68: brightest toward the sun, upper left
+        const dIn = Math.min(hx - Math.abs(i + 0.5 - W / 2), hy - Math.abs(j + 0.5 - H / 2)), fe = Math.min(1, Math.max(0, dIn / feather)), fs = fe * fe * (3 - 2 * fe);   // v72: no hard step at the opening's edge
+        let a = inside ? core * 0.85 + (core * inner * (0.55 + 0.45 * Math.exp(-(cx * cx * 6 + cy * cy * 5))) - core * 0.85) * fs : Math.exp(-dist * fall) * core * 0.85;   // v48: lighter over the glass itself, so the branches beyond keep their darks
         a = Math.max(0, Math.min(1, a + (Math.random() - 0.5) / 255));
         const k = (j * W + i) * 4; px[k] = 255; px[k + 1] = 206; px[k + 2] = 150; px[k + 3] = a * 255; }
       x.putImageData(d, 0, 0); const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; return t; };
     const bloom = (w, h, pad, y, fall, core, opacity, inner = 1) => {
       const W = 256, H = Math.round(256 * (h + 2 * pad) / (w + 2 * pad));
       const m = new THREE.Mesh(new THREE.PlaneGeometry((w + 2 * pad) * U, (h + 2 * pad) * U),
-        new THREE.MeshBasicMaterial({ map: bloomTex(W, H, W * pad / (w + 2 * pad), H * pad / (h + 2 * pad), fall, core, inner), transparent: true, opacity,
-          blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+        new THREE.MeshBasicMaterial({ map: bloomTex(W, H, W * pad / (w + 2 * pad), H * pad / (h + 2 * pad), fall, core, inner, W * 7 / (w + 2 * pad)), transparent: true, opacity,
+          blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }));
       m.position.set((WX0 + WX1) / 2 * U, cz * U, -y * U); m.renderOrder = 4; room.add(m); return m; };
     bloom(WX1 - WX0, WZ1 - WZ0, 7, -0.7, 2.6, 0.62, 0.62, 0.3);       // at the glass: light wraps the sash bars and spills on the casing
     bloom(WX1 - WX0, WZ1 - WZ0, 30, -9, 1.6, 0.4, 0.42, 0.55);         // in front of the curtains: a wide, faint halo into the room
+    { // v58: the sun's shaft in the air: one faint sheet from the top of the window to where the opening's light meets the floor
+      const D = [0.35, -0.9, 1], toFloor = (x, z) => [x + D[0] * z / 0.9, -(D[2] * z / 0.9), 0];          // inches: across, out from the wall, up
+      const pts = [[WX0 + 2, 0, WZ1 - 2], [WX1 - 2, 0, WZ1 - 2], toFloor(WX1 - 2, WZ0 + 2), toFloor(WX0 + 2, WZ0 + 2)];
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts.flatMap(([x, y, z]) => [x * U, z * U, -y * U]), 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 1, 0, 0, 0], 2)); g.setIndex([0, 3, 1, 1, 3, 2]);
+      const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d', { willReadFrequently: true });
+      const v = x.createLinearGradient(0, 0, 0, 256); v.addColorStop(0, 'rgba(255,214,160,1)'); v.addColorStop(0.7, 'rgba(255,214,160,0.45)'); v.addColorStop(1, 'rgba(255,214,160,0)');
+      x.fillStyle = v; x.fillRect(0, 0, 64, 256);
+      const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(0.2, 'rgba(0,0,0,0)'); h.addColorStop(0.8, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)');
+      x.globalCompositeOperation = 'destination-out'; x.fillStyle = h; x.fillRect(0, 0, 64, 256);
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+      const shaft = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.07, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false }));
+      shaft.renderOrder = 5; room.add(shaft);
+      // a soft glow behind the free sheer, where the sun comes through it
+      const sc = document.createElement('canvas'); sc.width = 64; sc.height = 64; const sx = sc.getContext('2d', { willReadFrequently: true });
+      const r = sx.createRadialGradient(32, 32, 1, 32, 32, 31); r.addColorStop(0, 'rgba(255,226,180,1)'); r.addColorStop(0.5, 'rgba(255,226,180,0.45)'); r.addColorStop(1, 'rgba(255,226,180,0)'); sx.fillStyle = r; sx.fillRect(0, 0, 64, 64);
+      const st = new THREE.CanvasTexture(sc); st.encoding = THREE.sRGBEncoding;
+      const sg = new THREE.Mesh(new THREE.PlaneGeometry(26 * U, 64 * U), new THREE.MeshBasicMaterial({ map: st, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }));
+      sg.position.set((WX0 + 4) * U, 60 * U, 5.5 * U); sg.renderOrder = 2; room.add(sg);
+    }
+    scene.fog = new THREE.Fog(0x6a5a48, 60 * U, 400 * U);                    // v58: Linen only: the far room sinks into the dusk
+    { // v61: out of focus beyond the glass. A clear pane with a rough surface stands just past the leaves pressed to the
+      // glass (3.4 in out); seen through it, the branches and sky blur, the way a lens focused on the window would see them.
+      // v62: softer (Maxx): two partly transparent panes instead of one, so the blur comes on gradually with distance:
+      // just past the pressed leaves things are still sharp, a little farther they are half softened, and the far branches
+      // and sky are fully out of focus
+      // v73: replaced by the distance blur of the outside layer (see 'DOF' in the branches block)
+    }
 
     { // branches outside the window: v45's tree, rising from below the sill (inches: x across, y out beyond the glass, z up)
       const V = (x, y, z) => new THREE.Vector3(x * U, z * U, -y * U);
@@ -912,14 +1488,43 @@ async function buildRoom(DUST) {
       const bark = new THREE.MeshStandardMaterial({ color: 0x2a2019, roughness: 1, emissive: 0x6a4a30, emissiveIntensity: 0.16 }); bark.envMapIntensity = 0.08;   // soft silhouettes: a little of the glow's haze in them
       const lc = document.createElement('canvas'); lc.width = 64; lc.height = 128;
       { const g = lc.getContext('2d', { willReadFrequently: true });                     // a leaf: pointed oval, a darker midrib
-        const gr = g.createLinearGradient(0, 0, 64, 0); gr.addColorStop(0, '#5d6a33'); gr.addColorStop(0.5, '#7a8240'); gr.addColorStop(1, '#55602e');
-        g.fillStyle = gr; g.beginPath(); g.moveTo(32, 2); g.bezierCurveTo(62, 34, 60, 92, 32, 126); g.bezierCurveTo(4, 92, 2, 34, 32, 2); g.fill();
-        g.strokeStyle = 'rgba(40,44,20,0.6)'; g.lineWidth = 2; g.beginPath(); g.moveTo(32, 8); g.lineTo(32, 122); g.stroke(); }
+        // v58: a broad ovate blade (round base, short point), with a midrib and a few veins
+        const gr = g.createLinearGradient(0, 0, 64, 0); gr.addColorStop(0, '#6f8a3e'); gr.addColorStop(0.5, '#93ab55'); gr.addColorStop(1, '#67803a');
+        g.fillStyle = gr; g.beginPath(); g.moveTo(32, 126); g.bezierCurveTo(-4, 112, -2, 44, 32, 2); g.bezierCurveTo(66, 44, 68, 112, 32, 126); g.fill();
+        g.strokeStyle = 'rgba(40,52,20,0.5)'; g.lineWidth = 2; g.beginPath(); g.moveTo(32, 122); g.lineTo(32, 8); g.stroke();
+        g.lineWidth = 1; for (let k = 0; k < 5; k++) { const y = 104 - k * 20; [-1, 1].forEach(sd => { g.beginPath(); g.moveTo(32, y); g.quadraticCurveTo(32 + sd * 12, y - 8, 32 + sd * 22, y - 18); g.stroke(); }); } }
       const lt = new THREE.CanvasTexture(lc); lt.encoding = THREE.sRGBEncoding;
-      const leafMat = new THREE.MeshStandardMaterial({ map: lt, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.85, color: 0x8a8a7a, emissive: 0x8a6a3a, emissiveIntensity: 0.3 });
+      const leafMat = new THREE.MeshStandardMaterial({ map: lt, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.75, color: 0x9ab056, emissive: 0x2e4212, emissiveIntensity: 0.5 });   // v58: in the sun: bright green, a little light through the blade
       leafMat.envMapIntensity = 0.12;
-      const leafOut = leafMat.clone(); leafOut.color.set(0x74785f); leafOut.emissiveIntensity = 0.22;   // v52: outside leaves a little darker than the sky behind them
-      const leafGeo = new THREE.PlaneGeometry(1.45 * U, 3.0 * U); leafGeo.translate(0, 1.5 * U, 0);   // pivots at the stem
+      const leafOut = leafMat.clone(); leafOut.color.set(0x3d4a2a); leafOut.emissive.set(0x6f8a3a); leafOut.emissiveIntensity = 0.14;   // v58: against the opening: dark, glowing green through the blade
+      // v61: light through the leaves. A blade between the viewer and the sun glows yellow-green from behind; one lit from
+      // behind at an angle glows less; the faces turned to the sun get a soft sheen (lower roughness).
+      const sunV = { value: new THREE.Vector3(0, 1, 0) }, sunC = { value: new THREE.Color(0xffc890) };
+      const translucent = (m, k) => { m.roughness = 0.55;
+        m.onBeforeCompile = sh => { sh.uniforms.uSunV = sunV; sh.uniforms.uSunC = sunC; sh.uniforms.uTrans = { value: k };
+          sh.fragmentShader = 'uniform vec3 uSunV; uniform vec3 uSunC; uniform float uTrans;\n' + sh.fragmentShader.replace('#include <lights_fragment_end>', `#include <lights_fragment_end>
+          { vec3 Lv = normalize(uSunV); float back = max(dot(-normal, Lv), 0.0);
+            float thru = pow(max(dot(-normalize(vViewPosition), Lv), 0.0), 3.0);
+            reflectedLight.directDiffuse += diffuseColor.rgb * vec3(0.85, 1.0, 0.45) * uSunC * uTrans * back * (0.35 + 1.1 * thru); }`); };
+        m.customProgramCacheKey = () => 'leaf-trans-' + k; m.needsUpdate = true; };
+      translucent(leafMat, 1.4); translucent(leafOut, 2.4);
+      // v73 DOF (Fable): blur weight from the distance beyond the glass, in view space (instanced leaves included), written
+      // to alpha in the blur pass only (the main canvas keeps alpha 1); the blur target is
+      // tone-mapped and encoded the same way as the screen, so the blurred copy matches the sharp view pixel for pixel.
+      const uGlassP = { value: new THREE.Vector3() }, uGlassN = { value: new THREE.Vector3() };
+      const uBlur = { value: new THREE.Vector2(1.0 * U, 14 * U) }, uDofPass = { value: 0 };   // sharp at the leaves on the glass, fully soft by ~16 in out
+      const dofInject = m => { const prev = m.onBeforeCompile, k = m.customProgramCacheKey;
+        m.onBeforeCompile = sh => { if (prev) prev(sh);
+          Object.assign(sh.uniforms, { uGlassP, uGlassN, uBlur, uDofPass });
+          sh.vertexShader = 'varying float vOutD;\nuniform vec3 uGlassP, uGlassN;\n' + sh.vertexShader
+            .replace('#include <project_vertex>', '#include <project_vertex>\n  vOutD = dot(mvPosition.xyz - uGlassP, uGlassN);');
+          sh.fragmentShader = 'varying float vOutD;\nuniform vec2 uBlur; uniform float uDofPass;\n' + sh.fragmentShader.replace('#include <output_fragment>', '#include <output_fragment>\n  if (uDofPass > 0.5) gl_FragColor.a = smoothstep(uBlur.x, uBlur.y, vOutD);'); };
+        m.customProgramCacheKey = () => (k ? k.call(m) : '') + '-dof'; m.needsUpdate = true; };
+      [bark, leafMat, leafOut].forEach(m => { m.fog = false; dofInject(m); });
+      EVERY_FRAME.push(() => { if (!WIN_LIGHT) return;
+        sunV.value.copy(WIN_LIGHT.position).sub(WIN_LIGHT.target.position).normalize().transformDirection(camera.matrixWorldInverse);
+        sunC.value.copy(WIN_LIGHT.color).multiplyScalar(Math.min(1.4, WIN_LIGHT.intensity / 3.2)); });
+      const leafGeo = new THREE.PlaneGeometry(2.2 * U, 2.8 * U); leafGeo.translate(0, 1.4 * U, 0);   // pivots at the stem (v58: broad ovate)
       const leaves = [], limbs = [];
       const up = new THREE.Vector3(0, 1, 0);
       // v49: the hard parts of the window wall. Room z: the slab runs from just outside the sash (OUT) to just inside the
@@ -994,7 +1599,7 @@ async function buildRoom(DUST) {
             const t = 0.3 + 0.7 * rnd(), k = Math.min(segs - 1, Math.floor(t * segs));
             const at = pts[k].clone().lerp(pts[k + 1], t * segs - k);
             const lf = { group, at, rx: (rnd() - 0.5) * 2.4, ry: rnd() * Math.PI * 2, rz: (rnd() - 0.5) * 2.4 - 0.4, s: (0.75 + rnd() * 0.5) * (L.leafScale || 1), ph: rnd() * 6.28 };
-            const tip = new THREE.Vector3(0, 3.0 * U * lf.s, 0).applyEuler(new THREE.Euler(lf.rx, lf.ry, lf.rz));
+            const tip = new THREE.Vector3(0, 2.8 * U * lf.s, 0).applyEuler(new THREE.Euler(lf.rx, lf.ry, lf.rz));
             const P0 = at.clone().add(G), P1 = P0.clone().add(tip);                        // the blade, stem to tip, in room coordinates
             if (!passes(P0, P1)) {                                                         // v49: moved by just enough to clear the wall
               if (P0.z + P1.z < OUT + IN) at.z -= Math.max(P0.z, P1.z) - (OUT - 0.3 * U);
@@ -1011,19 +1616,23 @@ async function buildRoom(DUST) {
       // v52 (Fable): the limbs lean out from the glass; leaves gather upper left and upper right, open sky low in the middle
       [[ [84, 11, -3],  [-0.1, 0.05, 1],  42, 1.3, 0.9, 0.006, 0 ],     // v53: all three 7 in lower (Maxx)
        [ [62, 14, -1],  [0.15, 0.1, 1],   34, 0.95, 1.7, 0.006, 0 ],
-       [ [99, 8, 7],    [-0.25, 0.08, 1], 44, 0.9, 2.6, 0.006, 5 ]].forEach(([b, d, len, r, ph, amp, d1]) => {
+       [ [99, 8, 7],    [-0.25, 0.08, 1], 44, 0.9, 2.6, 0.006, 5, true ]].forEach(([b, d, len, r, ph, amp, d1, gone]) => {   // v57: the right limb removed (Maxx); still grown, unseen, so the others keep their shapes
         const g = new THREE.Group(); g.position.copy(V(...b)); room.add(g); G.copy(g.position);
         const L = { g, ph, amp, b, d1 }; grow(g, new THREE.Vector3(), V(d[0], d[1], d[2]).normalize(), len * U, r, 0, L);
-        limbs.push(L);
+        if (gone) room.remove(g); else limbs.push(L);
       });
       { // v52 (Fable): the branch that comes in. It leaves the big limb outside, comes in under the raised sash near the
         // middle of the window, points straight into the room and droops 6 in over its 13 in reach; it carries the
         // biggest leaves in the scene (it is nearest), keeps v45's leaf colour (the room lights it), and casts its shadow.
-        const A = limbs[0], k = A.trunk.reduce((bi, q, i) => Math.abs(A.g.position.y + q.y - 34 * U) < Math.abs(A.g.position.y + A.trunk[bi].y - 34 * U) ? i : bi, 0);
+        const A = limbs[0], k = A.trunk.reduce((bi, q, i) => Math.abs(A.g.position.y + q.y - 29 * U) < Math.abs(A.g.position.y + A.trunk[bi].y - 29 * U) ? i : bi, 0);
         const start = A.g.position.clone().add(A.trunk[k]);
-        const g = new THREE.Group(); g.position.copy(start); room.add(g); G.copy(start);
-        const L = { g, ph: 0.4, amp: 0.004, b: null, mat: leafMat, leafScale: 1.15 }; REACH = true;
-        const stem = [new THREE.Vector3(), ...[[84, 4, 33.5], [83.5, -1, 32.6], [82.6, -5.5, 31.4], [81.7, -9.5, 30], [81, -13, 29]]   /* v54: low in the opening, just above the stool (Maxx) */.map(([x, y, z]) => V(x, y, z).sub(start))];
+        // v55: it grows out of the middle limb's trunk (a child of that limb, so it sways with it) and heads straight in,
+        // no doubling back, low in the opening just above the stool
+        const g = new THREE.Group(); g.position.copy(A.trunk[k]); A.g.add(g); G.copy(start);
+        const L = { g, ph: 0.4, amp: 0, b: null, mat: leafMat, leafScale: 1.15 }; REACH = true;
+        const sx = start.x / U, sz = start.y / U;                                          // where it leaves the trunk (inches across, up)
+        const ex = Math.min(90, Math.max(78, sx + 1.5));
+        const stem = [new THREE.Vector3(), ...[[ex, 4, Math.max(sz + 2.5, 31)], [ex + 0.5, -1, 32.6], [ex + 0.6, -5.5, 31.4], [ex + 0.3, -9.5, 30], [ex - 0.3, -13, 29]].map(([x, y, z]) => V(x, y, z).sub(start))];
         const cp = new THREE.CatmullRomCurve3(stem).getPoints(30);
         for (let n = 0; n < 30; n++) { const a = cp[n], b = cp[n + 1], r0 = 0.62 - 0.5 * n / 30, r1 = n === 29 ? 0.04 : 0.62 - 0.5 * (n + 1) / 30;
           const m = new THREE.Mesh(new THREE.CylinderGeometry(r1 * U, r0 * U, a.distanceTo(b), 7, 1, false), bark);
@@ -1032,6 +1641,15 @@ async function buildRoom(DUST) {
           const dir = cp[Math.min(30, n + 1)].clone().sub(cp[n]).normalize().add(new THREE.Vector3(sd * 0.7, 0.35, 0)).normalize();
           grow(g, cp[n].clone(), dir, ln * U, rr, 2, L); });
         REACH = false; limbs.push(L);
+      }
+      { // v58: leaves pressed flat to the outside of the upper sash's glass, in whorls of three to five, blades parallel to the pane
+        const g = new THREE.Group(); room.add(g); const L = { g, ph: 0, amp: 0, b: null, mat: leafOut };
+        [[68, 58], [74, 63], [70, 70], [77, 56], [66, 77], [75, 74], [80, 66], [69, 64]].forEach(([cx, cz], w) => {
+          const n = 3 + (w % 3), base = rnd() * Math.PI * 2;
+          for (let i = 0; i < n; i++) leaves.push({ group: g, at: V(cx + (rnd() - 0.5) * 1.2, 2.75 + rnd() * 0.35, cz + (rnd() - 0.5) * 1.2),
+            rx: (rnd() - 0.5) * 0.25, ry: (rnd() - 0.5) * 0.25, rz: base + i * Math.PI * 2 / n + (rnd() - 0.5) * 0.5, s: 0.8 + rnd() * 0.4, ph: rnd() * 6.28 });
+        });
+        limbs.push(L);
       }
       // leaves as one instanced mesh per limb (cheap), re-posed each frame for the breeze
       const dummy = new THREE.Object3D(), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1043,9 +1661,86 @@ async function buildRoom(DUST) {
         dummy.position.copy(l.at); dummy.rotation.set(l.rx + 0.12 * Math.sin(t * 1.7 + l.ph), l.ry, l.rz + 0.1 * Math.sin(t * 1.3 + l.ph * 1.3));
         dummy.scale.setScalar(l.s); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); }); im.instanceMatrix.needsUpdate = true; });
       pose(0);
+      { // v73 (Fable): one mesh per limb instead of one per cylinder segment: the outside is now drawn in three passes
+        const groups = []; limbs.forEach(L => L.g.traverse(o => { if (o.isGroup) groups.push(o); }));
+        groups.forEach(gr => { const ms = gr.children.filter(c => c.isMesh && !c.isInstancedMesh && c.material === bark); if (ms.length < 2) return;
+          let nv = 0, ni = 0; ms.forEach(m => { nv += m.geometry.attributes.position.count; ni += m.geometry.index.count; });
+          const P = new Float32Array(nv * 3), N = new Float32Array(nv * 3), I = new Uint32Array(ni), v3 = new THREE.Vector3(), nm = new THREE.Matrix3();
+          let ov = 0, oi = 0;
+          ms.forEach(m => { m.updateMatrix(); nm.getNormalMatrix(m.matrix); const g = m.geometry, pa = g.attributes.position, na = g.attributes.normal;
+            for (let k = 0; k < pa.count; k++) { v3.fromBufferAttribute(pa, k).applyMatrix4(m.matrix); P.set([v3.x, v3.y, v3.z], (ov + k) * 3);
+              v3.fromBufferAttribute(na, k).applyMatrix3(nm).normalize(); N.set([v3.x, v3.y, v3.z], (ov + k) * 3); }
+            const ix = g.index.array; for (let k = 0; k < ix.length; k++) I[oi + k] = ix[k] + ov;
+            ov += pa.count; oi += ix.length; gr.remove(m); g.dispose(); });
+          const mg = new THREE.BufferGeometry(); mg.setAttribute('position', new THREE.BufferAttribute(P, 3)); mg.setAttribute('normal', new THREE.BufferAttribute(N, 3)); mg.setIndex(new THREE.BufferAttribute(I, 1));
+          const mm = new THREE.Mesh(mg, bark); mm.castShadow = true; gr.add(mm); });
+      }
+      { // v73 DOF (Fable): the blur pass and the composite at the glass
+        limbs.forEach(L => L.g.traverse(o => o.layers.enable(1))); out.layers.enable(1);
+        const half = renderer.capabilities.isWebGL2 && (renderer.extensions.has('EXT_color_buffer_float') || renderer.extensions.has('EXT_color_buffer_half_float'));
+        const mk = () => new THREE.WebGLRenderTarget(4, 4, { type: half ? THREE.HalfFloatType : THREE.UnsignedByteType, depthBuffer: false, stencilBuffer: false });
+        const rt0 = new THREE.WebGLRenderTarget(4, 4, { type: half ? THREE.HalfFloatType : THREE.UnsignedByteType }), rt1 = mk(), rt2 = LOW_GPU ? null : mk();
+        const oc2 = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), dq = new THREE.Scene();
+        const dm = new THREE.ShaderMaterial({ uniforms: { tSrc: { value: null }, uTx: { value: new THREE.Vector2() }, uPre: { value: 1 } }, depthTest: false, depthWrite: false, toneMapped: false,
+          vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+          fragmentShader: `uniform sampler2D tSrc; uniform vec2 uTx; uniform float uPre; varying vec2 vUv;
+            void main() { vec4 acc = vec4(0.0); float ws = 0.0;
+              for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) { float w = (2.0 - abs(float(x))) * (2.0 - abs(float(y)));
+                vec4 c = texture2D(tSrc, vUv + vec2(float(x), float(y)) * uTx * 1.5); acc += (uPre > 0.5 ? vec4(c.rgb * c.a, c.a) : c) * w; ws += w; }
+              gl_FragColor = acc / ws; }` });
+        dq.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), dm));
+        const down = (a, b, pre) => { dm.uniforms.tSrc.value = a.texture; dm.uniforms.uTx.value.set(1 / a.width, 1 / a.height); dm.uniforms.uPre.value = pre ? 1 : 0;
+          renderer.setRenderTarget(b); renderer.render(dq, oc2); };
+        const comp = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, depthTest: true, toneMapped: false, fog: false,
+          defines: { HAS_T2: rt2 ? 1 : 0 },
+          uniforms: { t0: { value: rt0.texture }, t1: { value: rt1.texture }, t2: { value: (rt2 || rt1).texture }, uRes: { value: new THREE.Vector2(1, 1) },
+            uTx1: { value: new THREE.Vector2() }, uTx2: { value: new THREE.Vector2() }, uSky: { value: new THREE.Color(1.0, 0.84, 0.64) } },
+          vertexShader: 'void main() { gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+          fragmentShader: `uniform sampler2D t0, t1, t2; uniform vec2 uRes, uTx1, uTx2; uniform vec3 uSky;
+            vec4 up4(sampler2D t, vec2 uv, vec2 tx) { return 0.25 * (texture2D(t, uv + vec2(-0.5, -0.5) * tx) + texture2D(t, uv + vec2(0.5, -0.5) * tx)
+              + texture2D(t, uv + vec2(-0.5, 0.5) * tx) + texture2D(t, uv + vec2(0.5, 0.5) * tx)); }
+            void main() {
+              vec2 uv = gl_FragCoord.xy / uRes;
+              vec4 s0 = texture2D(t0, uv), s1 = up4(t1, uv, uTx1);
+            #if HAS_T2
+              vec4 s2 = up4(t2, uv, uTx2);
+            #else
+              vec4 s2 = s1;
+            #endif
+              float w = min(s0.a, s1.a);                                   // sharp wherever something near the glass is in front
+              vec3 c1 = s1.rgb / max(s1.a, 1e-3), c2 = s2.rgb / max(s2.a, 1e-3);
+              vec3 col = w < 0.5 ? mix(s0.rgb, c1, w * 2.0) : mix(c1, c2, (w - 0.5) * 2.0);
+              col = mix(col, uSky, 0.18 * w * w);                          // the farthest branches thin into the glow
+              gl_FragColor = vec4(col, 0.85 * smoothstep(0.04, 0.55, w));  // never fully opaque: the sharp view always shows through a little
+              #include <encodings_fragment>
+            }` });
+        const cq = new THREE.Mesh(new THREE.PlaneGeometry((WX1 - WX0) * U, (WZ1 - WZ0) * U), comp);
+        cq.position.set((WX0 + WX1) / 2 * U, (WZ0 + WZ1) / 2 * U, -2.2 * U); cq.renderOrder = 0; room.add(cq);
+        const v2 = new THREE.Vector2(), cc = new THREE.Color(); let litOn = false;
+        PRE_RENDER.push(() => {
+          if (!litOn) { scene.traverse(o => { if (o.isLight) o.layers.enable(1); }); litOn = true; }
+          renderer.getDrawingBufferSize(v2); const w0 = Math.max(4, Math.ceil(v2.x / 4)), h0 = Math.max(4, Math.ceil(v2.y / 4));
+          if (rt0.width !== w0 || rt0.height !== h0) { rt0.setSize(w0, h0); rt1.setSize(Math.max(2, w0 >> 1), Math.max(2, h0 >> 1)); if (rt2) rt2.setSize(Math.max(2, w0 >> 2), Math.max(2, h0 >> 2));
+            comp.uniforms.uRes.value.copy(v2); comp.uniforms.uTx1.value.set(1 / rt1.width, 1 / rt1.height); if (rt2) comp.uniforms.uTx2.value.set(1 / rt2.width, 1 / rt2.height); else comp.uniforms.uTx2.value.copy(comp.uniforms.uTx1.value); }
+          camera.updateMatrixWorld();
+          uGlassP.value.set((WX0 + WX1) / 2 * U, (WZ0 + WZ1) / 2 * U, -2.2 * U).applyMatrix4(camera.matrixWorldInverse);
+          uGlassN.value.set(0, 0, -1).transformDirection(camera.matrixWorldInverse);
+          const keepSh = renderer.shadowMap.needsUpdate, bg = scene.background, ca = renderer.getClearAlpha(), prevRT = renderer.getRenderTarget();
+          renderer.getClearColor(cc);
+          renderer.shadowMap.needsUpdate = false; scene.background = null; camera.layers.set(1); uDofPass.value = 1;
+          renderer.setRenderTarget(rt0); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(scene, camera);
+          camera.layers.set(0); uDofPass.value = 0; scene.background = bg; renderer.shadowMap.needsUpdate = keepSh;
+          down(rt0, rt1, true); if (rt2) down(rt1, rt2, false);
+          renderer.setRenderTarget(prevRT); renderer.setClearColor(cc, ca); });
+      }
       // a few fallen leaves: two on the stool, one on the floor under the window
       [[80, -2, 26.06, 0.4], [89, -1, 26.06, 2.1], [84, -14, 0.06, 4.0]].forEach(([x, y, z, a]) => {
         const m = new THREE.Mesh(leafGeo, leafMat); m.position.copy(V(x, y, z)); m.rotation.set(-Math.PI / 2, 0, a); m.scale.setScalar(0.85); m.receiveShadow = true; room.add(m); });
+      // v56: a few blown in onto the desk (top at 30 in), each lifting a little at the tip as a dry leaf does
+      [[24.5, -8.5, 0.7, 1.45, 0.10], [28.5, -15.5, 2.6, 1.3, 0.14], [13, -5, 4.1, 1.35, 0.08], [-13, -20.5, 5.6, 1.4, 0.12]].forEach(([x, y, a, sc, lift]) => {
+        const g = new THREE.Group(); g.position.copy(V(x, y, 30.05)); g.rotation.y = a; room.add(g);       // turned on the desk...
+        const m = new THREE.Mesh(leafGeo, leafMat); m.rotation.x = -Math.PI / 2 + lift; m.scale.setScalar(sc);   // ...lying flat, its tip lifted off the wood
+        m.castShadow = true; m.receiveShadow = true; g.add(m); });
       if (!still) EVERY_FRAME.push(now => { const t = now / 1000;
         limbs.forEach(({ g, ph, amp }) => { if (!amp) return; g.rotation.z = amp * Math.sin(t * 0.5 + ph) + amp * 0.5 * Math.sin(t * 1.3 + ph * 2); g.rotation.x = amp * 0.67 * Math.sin(t * 0.4 + ph * 1.7); });
         pose(t); });
@@ -1106,9 +1801,12 @@ async function buildRoom(DUST) {
       const dir = Math.sign(o.innerX - o.outerX);                            // +1: the inner (window-side) edge is to the right
       const NU = 150, NV = 170, span = Math.abs(o.innerX - o.outerX);
       const pos = new Float32Array((NU + 1) * (NV + 1) * 3), uv = new Float32Array((NU + 1) * (NV + 1) * 2), glow = new Float32Array((NU + 1) * (NV + 1));
-      const upperLen = Math.hypot(span * 0.6, TOP - o.tieZ) * 1.12, lowerLen = o.tieZ + o.puddle;
-      const vTie = upperLen / (upperLen + lowerLen);
-      const base = (u, v) => {                                                 // the unfolded sheet: x, height, depth (inches)
+      const upperLen = o.free ? TOP - o.hem : Math.hypot(span * 0.6, TOP - o.tieZ) * 1.12, lowerLen = o.free ? 0.01 : o.tieZ + o.puddle;
+      const vTie = o.free ? 2 : upperLen / (upperLen + lowerLen);
+      const base = o.free ? (u, v) => {                                        // v58: a free sheer, hanging straight, its lower half lifted into the room
+        const lift = o.lift * Math.pow(Math.max(0, (v - 0.3) / 0.7), 1.6) * (0.65 + 0.35 * u);
+        return [o.outerX + dir * u * span, TOP - v * (TOP - o.hem) + lift * 0.35, D0 + lift];
+      } : (u, v) => {                                                 // the unfolded sheet: x, height, depth (inches)
         const pTop = [o.outerX + dir * u * span, TOP, D0];
         const bx = o.tieX + dir * (u - 0.5) * o.bundleW;
         if (v <= vTie) {
@@ -1156,16 +1854,18 @@ async function buildRoom(DUST) {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
       geo.setAttribute('glow', new THREE.BufferAttribute(glow, 1)); geo.setIndex(idx); geo.computeVertexNormals();
-      const maps = clothMaps(o.flatW, upperLen + lowerLen, vTie, o.seed * 7 + 3);
+      const maps = clothMaps(o.flatW, upperLen + lowerLen, Math.min(vTie, 0.98), o.seed * 7 + 3);
       const mat = new THREE.MeshStandardMaterial({ map: maps.map, bumpMap: maps.bump, bumpScale: 0.0035, roughness: 0.96, metalness: 0,
-        side: THREE.DoubleSide, transparent: true, opacity: 0.94, emissive: CC.glow, emissiveIntensity: CC.glowI, depthWrite: true });
+        side: THREE.DoubleSide, transparent: true, opacity: o.opacity || 0.94, emissive: o.free ? 0xffc48a : CC.glow, emissiveIntensity: o.glowI || CC.glowI, depthWrite: true });
       mat.envMapIntensity = 0.3;
       mat.onBeforeCompile = sh => {                                           // per-vertex backlight
         sh.vertexShader = 'attribute float glow;\nvarying float vGlow;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n  vGlow = glow;');
         sh.fragmentShader = 'varying float vGlow;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= vGlow;');
+        if (o.free) sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  { float e = smoothstep(0.8, 1.0, vUv.x); diffuseColor.a *= 1.0 - 0.7 * e; }');   // v72: the leading edge thins
       };
       const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; m.renderOrder = 3; room.add(m);
       const sways = [m];                                                       // round two: the panel and its tieback sway together, very slightly
+      if (!o.free) {   // v58: a free panel has no tieback
       // the tieback: a band of the same linen cinched round the bundle, knotted at the front with two short tails,
       // and a strap back to a small bronze hook on the wall
       let dMin = 1e9, dMax = -1e9, xMin = 1e9, xMax = -1e9;
@@ -1198,11 +1898,16 @@ async function buildRoom(DUST) {
       hook.position.set(hookX * U, (o.tieZ + 0.6) * U, 0.68 * U); room.add(hook);
       const arm = new THREE.Mesh(new THREE.TorusGeometry(0.75 * U, 0.17 * U, 8, 20, Math.PI * 1.2), bronze);
       arm.position.set(hookX * U, (o.tieZ + 0.9) * U, 1.3 * U); arm.rotation.set(0, Math.PI / 2, Math.PI * 0.9); room.add(arm);
+      }
       { // hang everything that moves from a pivot on the rod, and let it breathe in a faint draught (off for reduced motion)
         const grp = new THREE.Group(); grp.position.set(((o.outerX + o.innerX) / 2) * U, ROD * U, D0 * U); room.add(grp);
         sways.forEach(obj => { room.remove(obj); obj.position.sub(grp.position); grp.add(obj); });
         if (!matchMedia('(prefers-reduced-motion: reduce)').matches) EVERY_FRAME.push(now => { const t = now / 1000;
+          if (o.free) {   // v58: the free sheer breathes in and out on the breeze, only ever into the room (about 3 in at the hem)
+            grp.rotation.x = -(0.01 + 0.022 * (0.5 + 0.5 * Math.sin(t * 2 * Math.PI * 0.25 + o.seed)) * (0.7 + 0.3 * Math.sin(t * 2 * Math.PI * 0.07)));
+            grp.rotation.z = 0.004 * Math.sin(t * 0.9 + o.seed); return; }
           grp.rotation.x = 0.003 * Math.sin(t * 0.42 + o.seed) + 0.0012 * Math.sin(t * 1.07 + o.seed * 2); grp.rotation.z = 0.0012 * Math.sin(t * 0.31 + o.seed * 3); });
+        if (o.free) grp.rotation.x = -0.02;
       }
       // rings on the rod at the pleat tops
       for (let k = 0; k <= o.rings; k++) {
@@ -1458,15 +2163,50 @@ async function buildRoom(DUST) {
       mkStem([V3(x, -4.6, SZ + 4.3), V3(x + Math.cos(a) * rr * 0.45, -4.6 + Math.sin(a) * rr * 0.45, SZ + 4.3 + h), V3(x + Math.cos(a) * rr, -4.6 + Math.sin(a) * rr, SZ + 4.3 + h * 0.75)], 6, 1.6); }
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) EVERY_FRAME.push(now => { const t = now / 1000;
       stems.forEach(s => { s.g.rotation.z = s.amp * Math.sin(t * s.sp + s.ph); s.g.rotation.x = s.amp * 0.6 * Math.sin(t * s.sp * 0.8 + s.ph * 2); }); });
-    // a framed print leaning against the wall at the right end: tonight's moon, in navy ink on paper (round two)
-    const pc = document.createElement('canvas'); pc.width = 320; pc.height = 400; const g = pc.getContext('2d', { willReadFrequently: true });
-    g.fillStyle = '#ece5d6'; g.fillRect(0, 0, 320, 400); g.strokeStyle = '#1f2a44'; g.lineWidth = 2; g.beginPath(); g.arc(160, 180, 70, 0, Math.PI * 2); g.stroke();
-    drawMoonPhase(g, 160, 180, 70, MOON.age, '#ece5d6', '#1f2a44'); g.beginPath(); g.arc(160, 180, 70, 0, Math.PI * 2); g.stroke(); g.fillStyle = '#1f2a44'; g.fillRect(110, 320, 100, 2);
-    const pt = new THREE.CanvasTexture(pc); pt.encoding = THREE.sRGBEncoding;
-    const frame = new THREE.Group(); frame.position.set((SX1 - 6) * U, SZ * U, 1.6 * U); frame.rotation.x = -0.12; room.add(frame);
-    const fb = new THREE.Mesh(new THREE.BoxGeometry(8 * U, 10 * U, 0.6 * U), G.slot); fb.position.y = 5 * U; fb.castShadow = true;
-    const pm = new THREE.MeshStandardMaterial({ map: pt, roughness: 0.8 }); pm.envMapIntensity = ENV_SUBJECT;
-    const art = new THREE.Mesh(new THREE.PlaneGeometry(6.8 * U, 8.8 * U), pm); art.position.set(0, 5 * U, 0.31 * U); frame.add(fb, art);
+    // v69: a sheet pinned to the wall under the shelf's right end, the Notturno brush n printed on it (Maxx's logo n_3).
+    // Flat at the pin, its lower edge rolls up off the wall and its right corner lifts; the back of the sheet is blank.
+    { const PW = 11, PH = 14, PX = 36.5, PTOP = 57;   // v71: bigger all round (the n too), letter-sized
+      const tex = new THREE.TextureLoader().load('assets/notturno-paper.jpg');
+      tex.encoding = THREE.sRGBEncoding; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const geo = new THREE.PlaneGeometry(PW * U, PH * U, 28, 44), pp = geo.attributes.position, uv = geo.attributes.uv;
+      // v70: the bottom right corner rolls up off the wall across a diagonal fold, nearly turning over on itself,
+      // showing the sheet's blank back; the rest of the sheet bows a little away from the wall below the pin
+      const nl = Math.hypot(1 / PW, 1 / PH), nx = (1 / PW) / nl, ny = (1 / PH) / nl, R2 = 2.0;
+      for (let k = 0; k < pp.count; k++) {
+        const u = uv.getX(k), v = 1 - uv.getY(k);
+        let px = u * PW, py = v * PH, d = 0.06 + 0.16 * Math.sin(Math.PI * u) * v + 0.22 * v * v;
+        const dist = (px / PW + py / PH - 1.35) / nl;
+        if (dist > 0) { const th = dist / R2, back = dist - R2 * Math.sin(th); px -= nx * back; py -= ny * back; d += R2 * (1 - Math.cos(th)); }
+        pp.setXYZ(k, (px - PW / 2) * U, -py * U, d * U);
+      }
+      geo.computeVertexNormals();
+      const front = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, side: THREE.FrontSide }); front.envMapIntensity = ENV_SUBJECT;
+      const back = new THREE.MeshStandardMaterial({ color: 0xe6e0d2, roughness: 0.95, side: THREE.BackSide }); back.envMapIntensity = ENV_SUBJECT;
+      const sheet = new THREE.Group(); sheet.position.set(PX * U, PTOP * U, 0.02 * U); sheet.rotation.z = -0.075; room.add(sheet);   // v71: tilted a little to the right
+      [front, back].forEach(m => { const o = new THREE.Mesh(geo, m); o.castShadow = o.receiveShadow = true; sheet.add(o); });
+      // v71: held up by a letter opener instead of a pin, driven through the top of the sheet into the wall: one piece of
+      // polished steel, a flat blade tapering to its point, a slim neck, and a handle that twists up into a small scoop
+      { const L = 9.5, wid = x => x < 3.6 ? 0.56 * Math.sin(Math.min(1, x / 3.6) * Math.PI / 2) : x < 6.2 ? 0.56 - 0.3 * (x - 3.6) / 2.6 : 0.26 + 0.5 * Math.sin(Math.min(1, (x - 6.2) / 2.4) * Math.PI / 2) * (x > 8.6 ? Math.sqrt(Math.max(0, 1 - Math.pow((x - 8.6) / 0.9, 2))) : 1);
+        const sh = new THREE.Shape(), N = 60; sh.moveTo(0, 0);
+        for (let k = 1; k <= N; k++) { const x = L * k / N; sh.lineTo(x, wid(x) / 2); }
+        for (let k = N; k >= 0; k--) { const x = L * k / N; sh.lineTo(x, -wid(x) / 2); }
+        const g = new THREE.ExtrudeGeometry(sh, { depth: 0.07, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.015, bevelSegments: 2, curveSegments: 4 });
+        g.translate(0, 0, -0.035);
+        const q = g.attributes.position;
+        for (let k = 0; k < q.count; k++) { const x = q.getX(k), y = q.getY(k); let z = q.getZ(k), yy = y;
+          if (x > 5.8) { const t = (x - 5.8) / (L - 5.8), tw = 1.1 * t;          // the handle twists and lifts into the scoop
+            const c = Math.cos(tw), sn = Math.sin(tw); yy = y * c - z * sn; z = y * sn + z * c + 0.9 * t * t;
+            if (x > 7.6) z -= 0.22 * (1 - Math.pow(y / Math.max(0.05, wid(x) / 2), 2)) * Math.min(1, (x - 7.6) / 0.6); }   // the scoop cups
+          q.setXYZ(k, x * U, yy * U, z * U); }
+        g.computeVertexNormals();
+        const steel = new THREE.MeshStandardMaterial({ color: 0xc4c8cc, metalness: 1, roughness: 0.2 }); steel.envMapIntensity = 0.9;
+        const opener = new THREE.Mesh(g, steel); opener.castShadow = true;
+        const dir = new THREE.Vector3(0.3, 0.1, 1).normalize();                 // out of the wall, a little up and to the right
+        opener.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir);
+        opener.rotateX(1.2);                                                   // the blade's flat turned toward the viewer
+        const hole = new THREE.Vector3((PX + 0.3) * U, (PTOP - 1.9) * U, 0);   // through the sheet just below its top edge
+        opener.position.copy(hole).addScaledVector(dir, -1.6 * U);              // 1.6 in of the point is in the wall
+        room.add(opener); } }
   }
   // simple shell chair (per Maxx's reference, 2026-11-03): one bent-plywood shell on four splayed, tapered round legs
   // with rails under the seat. Greyscale like the rest of the room. Chair-local: x across, y up, z toward its front.
@@ -1528,8 +2268,8 @@ async function buildRoom(DUST) {
     const lampLight = new THREE.SpotLight(0xffbd74, 12, 3.6, 37 * Math.PI / 180, 0.62, 1.25);   // wider and warmer: the whole desk and the wall behind it
     lampLight.position.set(0, -0.5 * U, 0); shade.add(lampLight); LAMP = lampLight;
     const lt = new THREE.Object3D(); lt.position.set(0, -40 * U, 0); shade.add(lt); lampLight.target = lt;   // follows the tilt
-    lampLight.castShadow = true; lampLight.shadow.mapSize.set(1024, 1024); lampLight.shadow.radius = 4; lampLight.shadow.bias = -0.0008;
-    lampLight.shadow.camera.near = 0.05; lampLight.shadow.camera.far = 3;
+    lampLight.castShadow = true; lampLight.shadow.mapSize.set(SH_LAMP, SH_LAMP); lampLight.shadow.radius = 3; lampLight.shadow.bias = -0.0002; lampLight.shadow.normalBias = 0.002;
+    lampLight.shadow.camera.near = 0.05; lampLight.shadow.camera.far = 3;   // v67: twice the detail (not focused: a tighter cone left the floor under the desk unshadowed)
     const glow = new THREE.PointLight(0xffc183, 0.9, 1.8, 2); glow.position.set(0, -2 * U, 0); shade.add(glow);   // soft halo around the shade
   }
   // a messy pair of jeans tossed on the floor (2026-11-04, after Maxx's reference), with a denim weave and stitched seams. Toned by the room palette like the other
@@ -1626,22 +2366,18 @@ async function buildRoom(DUST) {
       const end = new THREE.Mesh(new THREE.CylinderGeometry(0.165 * U, 0.165 * U, 0.35 * U, 12), darkBrass); end.rotation.x = Math.PI / 2; end.position.z = -3.45 * U;
       const eraser = new THREE.Mesh(new THREE.CylinderGeometry(0.15 * U, 0.15 * U, 0.3 * U, 12), kraft); eraser.rotation.x = Math.PI / 2; eraser.position.z = -3.75 * U;
       g.add(body, cone, lead, end, eraser); }
-    // reading glasses, folded, set down half on the envelope
-    { const g = new THREE.Group(); g.position.copy(P3(20.6, -18.7, DESK + 0.95)); g.rotation.set(-1.05, 0.5, 0.06); room.add(g);
+    // reading glasses, folded, set down lenses-up beside the envelope (v73): the lower rims rest on the desk and the
+    // folded temples behind them prop the top of the frame up about 23 degrees
+    { const g = new THREE.Group(); g.position.copy(P3(16.6, -18.2, DESK + 0.33)); g.rotation.set(-Math.PI / 2 + 0.405, 0.42, 0, 'YXZ'); room.add(g);
       const lens = new THREE.MeshStandardMaterial({ color: 0xdfe6ea, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.18 });
-      [-1.12, 1.12].forEach(x => { const rim = new THREE.Mesh(new THREE.TorusGeometry(0.92 * U, 0.08 * U, 8, 40), darkBrass); rim.position.x = x * U; rim.scale.y = 0.82; rim.castShadow = true;
+      [-1.12, 1.12].forEach(x => { const rim = new THREE.Mesh(new THREE.TorusGeometry(0.92 * U, 0.07 * U, 8, 40), darkBrass); rim.position.x = x * U; rim.scale.y = 0.82; rim.castShadow = true;
         const l = new THREE.Mesh(new THREE.CircleGeometry(0.9 * U, 32), lens); l.position.x = x * U; l.scale.y = 0.82; g.add(rim, l);
-        const temple = new THREE.Mesh(new THREE.BoxGeometry(4.6 * U, 0.08 * U, 0.12 * U), darkBrass); temple.position.set(-x * 0.2 * U, 0.42 * U, -0.32 * U * Math.sign(x) - 0.25 * U);
-        temple.rotation.y = 0.05 * Math.sign(x); temple.castShadow = true; g.add(temple); });
-      const bridge = new THREE.Mesh(new THREE.TorusGeometry(0.28 * U, 0.06 * U, 6, 16, Math.PI), darkBrass); bridge.position.y = 0.2 * U; g.add(bridge); }
-    // a mug ring at the front right, where a hand sets a cup down; the cup itself has gone
-    { const t = canvasTex(256, 256, (g, w, h) => { g.clearRect(0, 0, w, h);
-        [[128, 128, 92, 0.32, 9], [146, 120, 92, 0.16, 6]].forEach(([x, y, r, a, lw]) => {
-          for (let k = 0; k < 3; k++) { g.strokeStyle = `rgba(92,58,30,${a * (0.6 + 0.4 * k / 2)})`; g.lineWidth = lw - k * 2.5; g.beginPath(); g.arc(x, y, r - k, 0.3 + k * 0.4, Math.PI * 2 - 0.6 + k * 0.2); g.stroke(); } });
-        const f = g.createRadialGradient(128, 128, 0, 128, 128, 98); f.addColorStop(0, 'rgba(92,58,30,0)'); f.addColorStop(0.8, 'rgba(92,58,30,0.07)'); f.addColorStop(1, 'rgba(92,58,30,0)');
-        g.fillStyle = f; g.beginPath(); g.arc(128, 128, 98, 0, Math.PI * 2); g.fill(); });           // stays inside the ring: no square patch
-      const m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
-      const o = mesh(new THREE.PlaneGeometry(4 * U, 4 * U), m, false); o.rotation.x = -Math.PI / 2; o.position.copy(P3(28.8, -19.6, DESK + 0.01)); }
+        const hinge = new THREE.Mesh(new THREE.BoxGeometry(0.22 * U, 0.16 * U, 0.2 * U), darkBrass); hinge.position.set(Math.sign(x) * 2.06 * U, 0.34 * U, -0.1 * U); g.add(hinge); });
+      // the temples fold inward one over the other, each ending in its ear curve
+      [[1, -0.2, 0.34], [-1, -0.4, 0.3]].forEach(([sd, z, y]) => {
+        const pts = [[2.06, y, z * 0.5], [1.7, y, z], [0, y - 0.04, z], [-1.3, y - 0.08, z], [-1.75, y - 0.3, z], [-1.95, y - 0.62, z]].map(([a, b, c]) => new THREE.Vector3(a * sd * U, b * U, c * U));
+        const t = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, 0.05 * U, 6, false), darkBrass); t.castShadow = true; g.add(t); });
+      const bridge = new THREE.Mesh(new THREE.TorusGeometry(0.28 * U, 0.05 * U, 6, 16, Math.PI), darkBrass); bridge.position.y = 0.2 * U; g.add(bridge); }
     // a torn-open envelope with its letter half out, postmarked today
     { const g = new THREE.Group(); g.position.copy(P3(22.5, -21, DESK)); g.rotation.y = -0.24; room.add(g);
       const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
@@ -1666,7 +2402,7 @@ async function buildRoom(DUST) {
       const m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
       const o = mesh(new THREE.PlaneGeometry(53.6 * U, 2.2 * U), m, false); o.rotation.x = -Math.PI / 2; o.position.copy(P3(5.75, -25.85, DESK + 0.008)); }
 
-    // ---- 2. the person: a scarf over the chair, a postcard tucked behind the shelf bracket, books on the floor ----
+    // ---- 2. the person: a scarf over the chair, books on the floor ----
     { // a navy wool scarf hung over the chair back, draped (round two): gathered narrow where it crosses the top rail, opening
       // into soft lengthwise folds that deepen toward the ends, one end hanging longer and twisting a little, with fringe
       // (in the chair's own frame: x across, y up, z toward its front)
@@ -1701,17 +2437,6 @@ async function buildRoom(DUST) {
       [0, NV].forEach(j => { for (let i = 1; i < NX; i += 2) { const k = (j * (NX + 1) + i) * 3, x = pos[k], y = pos[k + 1], z = pos[k + 2];
         const s = new THREE.Mesh(new THREE.CylinderGeometry(0.05 * U, 0.04 * U, 1.1 * U, 4), fr); s.position.set(x + (Math.random() - 0.5) * 0.1 * U, y - 0.55 * U, z);
         s.rotation.set((Math.random() - 0.5) * 0.3, 0, (Math.random() - 0.5) * 0.3); s.castShadow = true; chair.add(s); } });
-    }
-    { // one postcard, a grey sea, tucked behind the right shelf bracket and hanging a little crooked
-      const t = canvasTex(416, 288, (g, w, h) => { const s = g.createLinearGradient(0, 0, 0, h); s.addColorStop(0, '#c9d0d3'); s.addColorStop(0.55, '#e3e1d8'); s.addColorStop(0.56, '#6f7f86'); s.addColorStop(1, '#4b5a61');
-          g.fillStyle = s; g.fillRect(0, 0, w, h); g.fillStyle = 'rgba(246,244,236,0.95)'; g.beginPath(); g.arc(w * 0.7, h * 0.3, h * 0.07, 0, Math.PI * 2); g.fill();
-          g.strokeStyle = 'rgba(255,255,255,0.25)'; for (let i = 0; i < 30; i++) { const y = h * (0.6 + rnd() * 0.38), x = rnd() * w; g.beginPath(); g.moveTo(x, y); g.lineTo(x + 12 + rnd() * 30, y); g.stroke(); }
-          g.strokeStyle = '#f4efe3'; g.lineWidth = 14; g.strokeRect(0, 0, w, h); });
-      const m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.75, side: THREE.DoubleSide }); m.envMapIntensity = ENV_SUBJECT;
-      const o = mesh(new THREE.PlaneGeometry(6.5 * U, 4.5 * U), m, false); o.position.copy(P3(33.6, -0.12, 62.35)); o.rotation.set(0, 0, -0.035); o.receiveShadow = true;   // round three: flat on the wall, its top-left corner behind the bracket
-      const pin = mesh(new THREE.SphereGeometry(0.22 * U, 12, 8), darkBrass); pin.position.copy(P3(36.3, -0.3, 64.0));                                   // a brass pin in the other top corner
-      const sh = mesh(new THREE.PlaneGeometry(6.7 * U, 4.7 * U), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.12, depthWrite: false }), false);
-      sh.position.copy(P3(33.75, -0.06, 62.2)); sh.rotation.z = -0.035;                                                                                      // a whisper of shadow behind it
     }
     { // books on the floor beside the pedestal: two greys and a navy one lying across the top, staggered
       const mats = [grey(0.3, 0.75), grey(0.5, 0.75), grey(0.28, 0.75), navy];
@@ -2033,7 +2758,8 @@ async function buildRoom(DUST) {
   let hfov = HFOV_ROOM;
   const P = (x, y, z) => new THREE.Vector3(x * U, z * U, -y * U);
   const UP = new THREE.Vector3(0, 1, 0);
-  const ROOM = SETTING === 'cafe' ? { pos: P(-34, -382, 63), tgt: P(-20, -60, 31), up: UP, par: 0.05 }
+  const ROOM = SETTING === 'dress' ? { pos: P(-38, -118, 50), tgt: P(6, -6, 43), up: UP, par: 0.05 }   // three-quarter from the left (Fable, v58)
+             : SETTING === 'cafe' ? { pos: P(-34, -382, 63), tgt: P(-20, -60, 31), up: UP, par: 0.05 }
                                   : { pos: P(DX - 8, -150, 64), tgt: P(DX - 8, 0, 32), up: new THREE.Vector3(0, 1, 0), par: 0.05 };
 
   // ---------- the café's people (2026-11-05): Vathography relief figures ----------
@@ -2119,7 +2845,13 @@ async function buildRoom(DUST) {
   function applyVProj() { const n = camera.near, k = n / VCAM.f;
     camera.projectionMatrix.makePerspective(-VCAM.cx * k, (VCAM.W - VCAM.cx) * k, VCAM.cy * k, -(VCAM.H - VCAM.cy) * k, n, camera.far);
     camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert(); }
-  const REVIEW = SETTING === 'cafe' ? {
+  const REVIEW = SETTING === 'dress' ? {
+    room: ROOM,
+    hero:   { pos: P(74, -104, 58), tgt: P(-2, -8, 46), up: UP, par: 0.04 },              // three-quarter from the right, across the mirror
+    desk:   { pos: P(2, -64, 54), tgt: P(0, -6, 45), up: UP, par: 0.02 },               // the counter, mirror and folder, closer
+    top:    { pos: P(0, -18, 86), tgt: P(0, -8, 36), up: UP, par: 0.01 },               // near-plan over the counter
+    window: { pos: P(64, -64, 50), tgt: P(61, 0, 70), up: UP, par: 0.03 }               // toward the lattice window and the moon
+  } : SETTING === 'cafe' ? {
     room: ROOM,
     hero:   { pos: P(80, -336, 72), tgt: P(-26, -190, 34), up: UP, par: 0.04 },          // from the bar side, across the room
     desk:   { pos: P(-26, -322, 58), tgt: P(-22, -250, 35), up: UP, par: 0.02 },           // the table and folder, closer
@@ -2134,7 +2866,7 @@ async function buildRoom(DUST) {
   };
   if (SETTING === 'cafe') { await buildCafeFigures(); lightCafeLikeFigures(); }
   // Rain and Linen share the Nook's Window view (v38)
-  const READ_D = 0.3, READ_HALF = 3.65;   // viewer: closer than v54's 0.46 / 5.6, for the smaller frame                      // camera distance (m); half the visible sheet length (in)
+  const READ_D = 0.3, READ_HALF = 3.65;   // viewer: closer than the master page's 0.46 / 5.6, for the smaller frame   // camera distance (m); half the visible sheet length (in)
   let sRead = 0, sReadTo = 0;
   const sBounds = () => { const lo = Math.min(READ_HALF, sheetL / 2), hi = Math.max(lo, sheetL - READ_HALF); return [lo, hi]; };
   function readingPose(sIn) {
@@ -2292,7 +3024,7 @@ async function buildRoom(DUST) {
     document.querySelectorAll('[data-palette]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
   }));
   document.querySelectorAll('[data-palette]').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.palette === paletteName)));
-  if (SETTING === 'cafe') document.querySelector('[data-palette="colour"]').hidden = false;
+  if (SETTING === 'cafe' || SETTING === 'dress') document.querySelector('[data-palette="colour"]').hidden = false;
   document.querySelectorAll('[data-setting]').forEach(b => {
     b.setAttribute('aria-pressed', String(b.dataset.setting === SETTING));
     // (the viewer page builds the Nook only: SETTING_DEFAULT, above, is the one place that chooses the room)
@@ -2313,7 +3045,7 @@ async function buildRoom(DUST) {
     return c;
   }
   snapBtn.addEventListener('click', () => {
-    renderer.render(scene, camera);
+    PRE_RENDER.forEach(f => f()); renderer.render(scene, camera);
     const name = 'dusk-room-' + (SETTING || 'nook') + '-' + S.view + '.png';
     if (!window.claude) { const a = document.createElement('a'); a.href = snapCanvas().toDataURL('image/png'); a.download = name; document.body.appendChild(a); a.click(); a.remove(); return; }
     if (!downloads) { flash('Saving isn\u2019t available here'); return; }
@@ -2386,7 +3118,7 @@ async function buildRoom(DUST) {
     EVERY_FRAME.forEach(f => f(now));
     if (VCAM) {                                              // one fixed view: no zoom, parallax or drift
       camera.position.copy(VCAM.pos); camera.quaternion.copy(VCAM.q); camera.updateMatrixWorld(); applyVProj();
-      renderer.render(scene, camera); placeCallouts(); requestAnimationFrame(tick); return;
+      PRE_RENDER.forEach(f => f()); renderer.render(scene, camera); placeCallouts(); requestAnimationFrame(tick); return;
     }
     if (anim) {
       const k = Math.min(1, (now - anim.t0) / anim.dur), e = ease(k);
@@ -2403,7 +3135,7 @@ async function buildRoom(DUST) {
       if (Math.abs(want - hfov) > 1e-4) { hfov = want; fovFor(hfov); }
     }
     if (S.orbit && controls) {
-      controls.update(); renderer.render(scene, camera); placeCallouts(); requestAnimationFrame(tick); return;
+      controls.update(); PRE_RENDER.forEach(f => f()); renderer.render(scene, camera); placeCallouts(); requestAnimationFrame(tick); return;
     }
     if (LAMP) { const t = roomness(0.006, 0.044); LAMP.intensity = LAMP_LO + (LAMP_HI - LAMP_LO) * t; }   // full in the room, low up close
     par.lerp(parTo, 0.06);
@@ -2414,7 +3146,7 @@ async function buildRoom(DUST) {
     if (IDLE_DRIFT) { const tt = now / 1000, k = cur.par / 0.05;   // a centimetre or so over ten seconds, nothing up close
       camera.position.addScaledVector(upv, Math.sin(tt * 2 * Math.PI / 10) * 0.008 * k).addScaledVector(side, Math.sin(tt * 2 * Math.PI / 23 + 1) * 0.006 * k); }
     camera.lookAt(cur.tgt);
-    renderer.render(scene, camera);
+    PRE_RENDER.forEach(f => f()); renderer.render(scene, camera);
     placeCallouts();
     requestAnimationFrame(tick);
   }
@@ -2474,7 +3206,7 @@ async function buildRoom(DUST) {
       if (CAFE) {                                             // the folder alone, centred on the table, 4 in from its back edge
         const T = CAFE.T;
         desk.traverse(o => { if (o.isMesh && !/^Folder_/.test(o.name)) o.visible = false; });
-        desk.position.set((T.cx - 4.75) * U, (T.h - 30) * U, (-T.cy - T.d / 2 + 4 - 8) * U);
+        desk.position.set((T.cx - 4.75) * U, (T.h - 30) * U, (-T.cy - T.d / 2 + (T.inset || 4) - 8) * U);
       }
       if (!CAFE && !VATH) {   // round two: the open folder rests a hair higher on its left, on the kraft folder slid under it; the drawer is left open an inch
         const tilt = new THREE.Matrix4().makeTranslation(14.9 * U, 30 * U, 0).multiply(new THREE.Matrix4().makeRotationZ(-0.012)).multiply(new THREE.Matrix4().makeTranslation(-14.9 * U, -30 * U, 0));
@@ -2521,5 +3253,7 @@ requestAnimationFrame(() => setTimeout(async () => {
   catch (e) { window.DuskRoom.sceneFailed('The scene did not load.'); console.error(e); }
 }, 0));
 </script>
+
+
 
 </body></html>
