@@ -30,9 +30,9 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
 <body>
 <main>
   <article aria-labelledby="t">
-    <h1 id="t">Sabbaths 2014, III</h1>
-    <p class="author" id="a">Wendell Berry</p>
-    <p class="from" id="f">from <i>Another Day: Sabbath Poems, 2013–2023</i></p>
+    <h1 id="t">Thanks</h1>
+    <p class="author" id="a">W. S. Merwin</p>
+    <p class="from" id="f">from <i>The Rain in the Trees</i> · 1988</p>
     <p class="lines" id="l"></p>
   </article>
 </main>
@@ -47,7 +47,7 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
     f.hidden = !(p.collection || p.year);
     document.getElementById('l').textContent = (p.lines || []).join('\n');
   }
-  var baked = {"title": "Sabbaths 2014, III", "author": "Wendell Berry", "lines": [], "collection": "Another Day: Sabbath Poems, 2013–2023"};
+  var baked = {"title": "Thanks", "author": "W. S. Merwin", "year": 1988, "lines": [], "collection": "The Rain in the Trees", "date": "2026-11-10"};
   show(baked);
   try { fetch('poem.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (p) { if (p && p.title && p.lines) show(p); }).catch(function () {}); } catch (e) {}
 })();
