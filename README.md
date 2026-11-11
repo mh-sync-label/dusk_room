@@ -23,6 +23,11 @@ and takes over on its own if the 3D scene cannot run.
   `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
   time (ms per frame and fps, averaged over the last second), the shadow-map rate, and the pixel ratio in the stage's
   corner; the same numbers are at `DuskRoom.perf`.
+- Lighting: two lights carry the Nook, the warm lamp on the folder and cool moonlight through the window, and the rest of
+  the room falls toward a dark blue-grey. The moonlight follows tonight's phase: the moon in the window, the beam on the
+  floor, and its strength all scale with the lit fraction. To review another night, `?illum=0..1` sets the lit fraction
+  (0 new, 1 full, on tonight's side of full) and `?phase=0..1` sets the phase (0 new, 0.25 first quarter, 0.5 full, 0.75
+  last quarter). The knobs are in the `ML` object near the top of `buildRoom()`.
 - Rendering cost: the shadow maps are redrawn every other frame while the room is still and every third while the camera
   is moving (they are drawn from the lights, so the camera's moves do not change them); the renderer asks for the
   high-performance GPU on two-GPU machines.
