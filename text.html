@@ -30,13 +30,43 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
 <body>
 <main>
   <article aria-labelledby="t">
-    <h1 id="t">Sabbaths 2014, III</h1>
-    <p class="author" id="a">Wendell Berry</p>
-    <p class="from" id="f">from <i>Another Day: Sabbath Poems, 2013–2023</i></p>
-    <p class="lines" id="l">You don’t know the day until
-You’ve seen the last of it
-Reddening the hill
-And rising into night</p>
+    <h1 id="t">Thanks</h1>
+    <p class="author" id="a">W. S. Merwin</p>
+    <p class="from" id="f">from <i>The Rain in the Trees</i> · 1988</p>
+    <p class="lines" id="l">Listen
+with the night falling we are saying thank you
+we are stopping on the bridges to bow from the railings
+we are running out of the glass rooms
+with our mouths full of food to look at the sky
+and say thank you
+we are standing by the water thanking it
+standing by the windows looking out
+in our directions
+
+back from a series of hospitals back from a mugging
+after funerals we are saying thank you
+after the news of the dead
+whether or not we knew them we are saying thank you
+
+over telephones we are saying thank you
+in doorways and in the backs of cars and in elevators
+remembering wars and the police at the door
+and the beatings on stairs we are saying thank you
+in the banks we are saying thank you
+in the faces of the officials and the rich
+and of all who will never change
+we go on saying thank you thank you
+
+with the animals dying around us
+our lost feelings we are saying thank you
+with the forests falling faster than the minutes
+of our lives we are saying thank you
+with the words going out like cells of a brain
+with the cities growing over us
+we are saying thank you faster and faster
+with nobody listening we are saying thank you
+we are saying thank you and waving
+dark though it is</p>
   </article>
 </main>
 <script>
@@ -50,7 +80,7 @@ And rising into night</p>
     f.hidden = !(p.collection || p.year);
     document.getElementById('l').textContent = (p.lines || []).join('\n');
   }
-  var baked = {"title": "Sabbaths 2014, III", "author": "Wendell Berry", "lines": ["You don’t know the day until", "You’ve seen the last of it", "Reddening the hill", "And rising into night"], "collection": "Another Day: Sabbath Poems, 2013–2023"};
+  var baked = {"title": "Thanks", "author": "W. S. Merwin", "year": 1988, "lines": ["Listen", "with the night falling we are saying thank you", "we are stopping on the bridges to bow from the railings", "we are running out of the glass rooms", "with our mouths full of food to look at the sky", "and say thank you", "we are standing by the water thanking it", "standing by the windows looking out", "in our directions", "", "back from a series of hospitals back from a mugging", "after funerals we are saying thank you", "after the news of the dead", "whether or not we knew them we are saying thank you", "", "over telephones we are saying thank you", "in doorways and in the backs of cars and in elevators", "remembering wars and the police at the door", "and the beatings on stairs we are saying thank you", "in the banks we are saying thank you", "in the faces of the officials and the rich", "and of all who will never change", "we go on saying thank you thank you", "", "with the animals dying around us", "our lost feelings we are saying thank you", "with the forests falling faster than the minutes", "of our lives we are saying thank you", "with the words going out like cells of a brain", "with the cities growing over us", "we are saying thank you faster and faster", "with nobody listening we are saying thank you", "we are saying thank you and waving", "dark though it is"], "collection": "The Rain in the Trees", "date": "2026-11-10"};
   show(baked);
   try { fetch('poem.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (p) { if (p && p.title && p.lines) show(p); }).catch(function () {}); } catch (e) {}
 })();
