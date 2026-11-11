@@ -58,6 +58,11 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 .callout .k { font-size: 0.36rem; letter-spacing: 0.08em; text-transform: uppercase; color: #8a6a44; }
 .callout .v { font-family: "EB Garamond", Garamond, Georgia, serif; font-size: 0.54rem; }
 .callout-lines.off { display: none; }
+/* moonlit pass: the lamp's warmth in the reading view (multiply, so ink and paper darken together) */
+#lampWash { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; mix-blend-mode: multiply;
+  background: radial-gradient(farthest-corner at var(--lx, 0%) var(--ly, 0%), rgb(255,254,251) 0%, rgb(254,249,241) 40%, rgb(247,237,222) 80%, rgb(238,225,205) 100%); }
+#lampWash::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 75% at 50% 48%, rgba(255,255,255,0) 60%, rgb(206,196,184) 100%); mix-blend-mode: multiply; }
+.textmode #lampWash { display: none; }
 .readlink { position: absolute; left: 14px; bottom: 12px; padding: 3px 0; border-radius: 0; background: none; font-size: 0.86rem; font-weight: 500;
   color: rgba(236,236,230,0.92); border-bottom: 1px solid rgba(236,236,230,0.4); text-shadow: 0 1px 3px rgba(0,0,0,0.7); z-index: 2; }
 .readlink:hover { background: none; border-bottom-color: rgba(236,236,230,0.9); }
@@ -401,7 +406,12 @@ async function buildRoom(DUST) {
   if (!window.THREE || !THREE.GLTFLoader) { toText('The 3D scene could not load its graphics library.'); return; }
   // tonight's Moon (round two): its age in days since the new moon and its lit fraction, for the window, the print and the desk
   const SYNODIC = 29.530588853;
-  const MOON = (() => { const d = new Date(); d.setHours(21, 0, 0, 0); const age = window.__MOON.age(d);
+  // ?phase=0..1 (0 new, 0.25 first quarter, 0.5 full, 0.75 last quarter) or ?illum=0..1 (lit fraction, on tonight's side of
+  // full) previews another night's moon: the window, the moonlight on the floor and the sheets on the desk (moonlit pass)
+  const MOON = (() => { const d = new Date(); d.setHours(21, 0, 0, 0); let age = window.__MOON.age(d);
+    const qs = new URLSearchParams(location.search), ph = parseFloat(qs.get('phase')), il = parseFloat(qs.get('illum'));
+    if (isFinite(ph)) age = (((ph % 1) + 1) % 1) * SYNODIC;
+    else if (isFinite(il)) { const x = Math.min(1, Math.max(0, il)), a = Math.acos(1 - 2 * x) / (2 * Math.PI) * SYNODIC; age = age > SYNODIC / 2 ? SYNODIC - a : a; }
     return { age, illum: (1 - Math.cos(2 * Math.PI * age / SYNODIC)) / 2 }; })();
   function drawMoonPhase(g, cx, cy, r, age, lit, dark) {        // lit on the right while waxing (northern sky)
     const f = age / SYNODIC, k = Math.cos(2 * Math.PI * f), waxing = f < 0.5, rx = Math.max(0.001, r * Math.abs(k));
@@ -427,6 +437,42 @@ async function buildRoom(DUST) {
   // phones and small machines (v67): a lighter pixel ratio and shadow maps, since memory, not detail, is what fails there
   const LOW_GPU = Math.min(screen.width || 9999, innerWidth || 9999) < 900 || (navigator.hardwareConcurrency || 8) < 6;
   const SH_BIG = LOW_GPU ? 2048 : 4096, SH_LAMP = LOW_GPU ? 1024 : 2048;
+  // ---------- Moonlit pass (2026-11-11): "the moon lights the room" ----------
+  // Two lights carry the picture: the warm lamp on the folder and cool moonlight through the window; everything else drops
+  // toward dark blue-grey. Tonight's illumination is the visible variable: lamp-only at new moon, a window-shaped patch of
+  // moonlight with the sash bars in it at full. The Nook only (the other rooms keep their own light). Every knob is here;
+  // CHANGES.md in the test folder lists them.
+  const MOONLIT = SETTING === 'nook';
+  const ML = {
+    roomTint: [0.9, 0.95, 1.06],   // the grey room's materials cooled toward blue-grey (grey palette only)
+    exposure: 1.0,               // the Nook's tone-mapping exposure (was 0.82)
+    hemi: 0.025,                 // cool sky / dark ground ambient (was 0.07)
+    envRoom: 0.016,              // the room's share of the environment light: the even grey that flattened the walls (was 0.06)
+    key: 0.025,                  // the front key, now without a shadow map (was 0.12, casting at 2048)
+    lamp: 6.5,                   // the lamp in the room view (was 15); the reading view keeps LAMP_LO
+    lampCone: 33, lampPenumbra: 0.85, lampDecay: 1.6, lampRange: 2.2, lampGlow: 0.35,   // a tighter, softer cone with real falloff (was 37 deg, 0.62, 1.25, range 3.6 m; glow 0.9)
+    subjectEnv: 0.13,            // the desk, folder and props' share of the environment light (was 0.16)
+    moonBeam: 0.75,              // the window's moonlight at full moon: kept under the lamplit paper, so the sheet stays the brightest thing in frame (second pass; was 2.6, which clipped the floor patch to white)
+    moonTint: 0x9fb6e8,          // ... and its colour: a cooler blue than the first pass's 0xc2d0ea, against the warm lamp
+    moonFloor: 0.02,             // ... and at new moon, as a fraction of full
+    moonCurve: 0.7,             // strength = moonFloor + (1 - moonFloor) * illum ^ moonCurve
+    moonFrom: [0.42, 0.82, -0.4], // direction toward the moon (three.js axes: +x right, +y up, -z out past the back wall)
+    moonShadow: LOW_GPU ? 1024 : 2048,   // the beam's shadow map, sized to the window alone (the old moon light drew the whole room at 4096)
+    brickSat: 0.1, brickContrast: 0.6, brickGain: 1.15, brickEnv: 0.06,   // the brick toward monotone: saturation, contrast, level, ambient (was 0.24)
+    sky: ['#14171d', '#2f353f'],  // the night through the window, top and bottom: grey-blue (was #1c2538 to #4a5670)
+    moonAt: [89, 70], moonR: 3.1, moonGlow: 9, moonMinCrescent: 0.11,   // the moon's pane (Blender inches: centre of the upper sash's lower right pane, clear of the drawn curtain), radius and glow radius
+    dustMoon: 0.3,              // motes caught in the moon shaft (times tonight's moonlight); none outside the lamp and the shaft
+    contact: 1,                  // strength of the extra contact shadows and corner darkening
+    wallSheetEnv: 0.06, openerEnv: 0.2,   // the Notturno sheet pinned under the shelf and its steel letter opener (live v69-v71): their share of the environment light. At the subject level (0.13) the white sheet glowed at twice the wall's brightness, and the polished steel at 0.9 read as a white streak in the dark room
+    calloutDelay: 1800, calloutHold: 4500,   // touch screens: the AUTHOR / FROM pills fade in this long after the room settles, for this long
+    readWarm: 1,                 // the lamp's warm falloff and vignette in the reading view (0 turns it off)
+    // third pass: the lamp reads as lit from the high room view, which sees only the shade's outside
+    shadeGlow: 0.16, shadeGlowCol: 0xffa35a, shadeFall: 2.2,   // warm light through the shade itself, as if thin enamel caught the spill: strongest at the lower rim, falling off as (1 - height) ^ shadeFall toward the top
+    bloom: 0.26, bloomSize: 4, bloomCol: 0xffd2a0, bloomDrop: 0,   // a small soft hot point at the shade's opening: strength, sprite size (in), colour, and how far below the rim it sits (in); the shade's lip hides its upper half
+    wallPool: 0.07, wallPoolCol: 0xff9c52, wallPoolSize: [26, 30], wallPoolAt: [2, -9]   // a warm pool on the wall behind and below the lamp: strength, size (in), and centre relative to the point on the wall behind the shade (in, right / up); a fast falloff, so the rest of the wall stays blue-grey
+  };
+  const tintHex = c => { const t = ML.roomTint; return (Math.min(255, Math.round((c >> 16 & 255) * t[0])) << 16) | (Math.min(255, Math.round((c >> 8 & 255) * t[1])) << 8) | Math.min(255, Math.round((c & 255) * t[2])); };
+  const MOON_K = ML.moonFloor + (1 - ML.moonFloor) * Math.pow(MOON.illum, ML.moonCurve);   // tonight's moonlight, 0..1
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, LOW_GPU ? 1.5 : 2));
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -448,9 +494,9 @@ async function buildRoom(DUST) {
   // A faint cool sky fill and a low warm fill from the viewer's side keep the oak desk and navy folder in true colour.
   const DIM = SETTING === 'nook' || SETTING === 'rain';      // 2026-11-05: lit only by the lamp and the window
   const DRESS = SETTING === 'dress';   // the dressing room (2026-11-08): night, lit by its slats, mirror ring and the moon
-  const ENV_ROOM = DIM ? 0.06 : LINEN ? 0.05 : DRESS ? 0.12 : 0.35, ENV_SUBJECT = DIM ? 0.16 : LINEN ? 0.2 : DRESS ? 0.3 : 0.55;   // Linen at dusk (v43): a dimmer room   // the Endcap's values: crisp whites and a subject that pops (2026-11-03)
+  const ENV_ROOM = MOONLIT ? ML.envRoom : DIM ? 0.06 : LINEN ? 0.05 : DRESS ? 0.12 : 0.35, ENV_SUBJECT = MOONLIT ? ML.subjectEnv : DIM ? 0.16 : LINEN ? 0.2 : DRESS ? 0.3 : 0.55;   // Linen at dusk (v43): a dimmer room   // the Endcap's values: crisp whites and a subject that pops (2026-11-03)
   let WIN_LIGHT = null;                                   // the window's light, for the dust (2026-11-06)
-  let LAMP = null, LAMP_LO = 1.8, LAMP_HI = DIM ? 15 : LINEN ? 14 : 12;      // lived-in pass: a stronger, warmer pool on the desk          // the scene's warm highlight, eased down in the reading view
+  let LAMP = null, LAMP_LO = 1.8, LAMP_HI = MOONLIT ? ML.lamp : DIM ? 15 : LINEN ? 14 : 12;      // lived-in pass: a stronger, warmer pool on the desk          // the scene's warm highlight, eased down in the reading view
   if (LINEN) {
     // a warm, hazy glow from the window: soft light into the room, the linen lit from behind, the lamp still on
     // v43, dusk: a low orange sun (about 21 degrees up, far to the right, nearly along the wall) whose beam crosses the room to the left: a long
@@ -496,25 +542,24 @@ async function buildRoom(DUST) {
     scene.add(key);
   }
   if (SETTING === 'nook') {
-  scene.add(new THREE.HemisphereLight(0xb8c6e0, 0x24221f, 0.07));   // a trace of night sky only (2026-11-05)   // cooled toward the window's blue (lived-in pass)
-  const moonTarget = new THREE.Vector3(0.15, 0.77, 0.35);
-  const moon = new THREE.DirectionalLight(0xcad8f2, 1.5 * (0.75 + 0.5 * MOON.illum)); WIN_LIGHT = moon;   // round two: cooler and about half as strong, brighter near full moon
-  // v68: from the moon in the window: the Room view's line through it, beyond the glass, raised to about 24 degrees
-  moon.position.copy(moonTarget).add(new THREE.Vector3(0.489, 0.445, -0.872).multiplyScalar(3.5));
-  moon.target.position.copy(moonTarget); scene.add(moon.target);
-  moon.castShadow = true; moon.shadow.mapSize.set(SH_BIG, SH_BIG); moon.userData.fitShadow = true;   // v67: box fitted to the room at load
-  Object.assign(moon.shadow.camera, { left: -4.5, right: 4.5, top: 3, bottom: -3, near: 0.3, far: 12 });
-  moon.shadow.radius = 3; moon.shadow.bias = -0.0004; moon.shadow.normalBias = 0.006;   // grazing light: a touch more bias than the others
+  // Moonlit pass: the ambient down about 1.5 stops, the exposure up to put the paper back where it was, so the room falls
+  // away into blue-grey and only the lamp and the window carry light.
+  renderer.toneMappingExposure = ML.exposure;
+  scene.add(new THREE.HemisphereLight(0x9aabc8, 0x17181c, ML.hemi));
+  // The moon: a far spotlight aimed through the window (in place of the room-wide directional light). Its rays are nearly
+  // parallel, it lights only what the window lets through, and its shadow map covers the beam alone, so the sash bars stay
+  // sharp in the patch on the floor at half the old map size. Its strength follows tonight's illumination (MOON_K).
+  const winC = new THREE.Vector3(79 * 0.0254, 61 * 0.0254, 0);              // the window's centre (x 62-96 in, z 30-92 in, in the back wall)
+  const MD = 6.5, mdir = new THREE.Vector3(...ML.moonFrom).normalize();
+  const moon = new THREE.SpotLight(ML.moonTint, ML.moonBeam * MOON_K, 0, Math.atan(1.1 / MD), 0.3, 0); WIN_LIGHT = moon;
+  moon.position.copy(winC).addScaledVector(mdir, MD); moon.target.position.copy(winC); scene.add(moon.target);
+  moon.castShadow = MOON_K > 0.03; moon.shadow.mapSize.set(ML.moonShadow, ML.moonShadow);   // a new moon casts nothing worth a map
+  moon.shadow.camera.near = 0.5; moon.shadow.camera.far = MD + 5.5;   // near kept small: the occluders between the moon and the window must be in the map
+  moon.shadow.radius = 2.5; moon.shadow.blurSamples = 12; moon.shadow.bias = -0.0004; moon.shadow.normalBias = 0.015;
   scene.add(moon);
-  // Endcap-style key (2026-11-03): a strong, warm-neutral light high from the front left with soft shadows, so the
-  // desk, chair and pedestal sit on the floor with depth and the oak pops against white walls
-  const key = new THREE.DirectionalLight(0xf6f2ec, 0.12);           // nearly off: no light from the viewer's side (2026-11-05)           // eased back so the lamp reads as the reason to sit here
-  key.position.set(-0.6, 2.5, 3.3); key.target.position.set(0.15, 0.5, 0.3); scene.add(key.target);   // inside the room, below the ceiling
-  key.castShadow = false; key.shadow.mapSize.set(2048, 2048);   // v67: too faint to show a shadow
-  Object.assign(key.shadow.camera, { left: -2.8, right: 2.8, top: 2.6, bottom: -1.8, near: 0.5, far: 10 });
-  key.shadow.radius = 7; key.shadow.blurSamples = 16; key.shadow.bias = -0.0005; key.shadow.normalBias = 0.02;
-  scene.add(key);
-  const warm = new THREE.DirectionalLight(0xfff0dc, 0.0); warm.position.set(1.5, 1.6, 3.5); scene.add(warm);
+  // the old front key, kept as a trace of fill with no shadow map of its own (it drew the whole room at 2048 for 0.12 of light)
+  const key = new THREE.DirectionalLight(0xe9ecf2, ML.key);
+  key.position.set(-0.6, 2.5, 3.3); key.target.position.set(0.15, 0.5, 0.3); scene.add(key.target); scene.add(key);
   }
 
   // ---------- room: simple, geometric, greyscale (Store-scene style). Authored in the Blender inch coordinates ----------
@@ -556,7 +601,7 @@ async function buildRoom(DUST) {
   let paletteName = PALETTES[PALETTE] || PALETTE === 'colour' ? PALETTE : 'grey';
   let tone = PALETTES[paletteName] || PALETTES.grey;
   const ROOM_MATS = [];
-  const roomColour = (v, hex) => paletteName === 'colour' && hex !== undefined ? hex : tone(v);
+  const roomColour = (v, hex) => { const c = paletteName === 'colour' && hex !== undefined ? hex : tone(v); return MOONLIT && paletteName === 'grey' ? tintHex(c) : c; };   // moonlit pass: a cool cast on the grey room
   const grey = (v, r, m, hex) => { const x = new THREE.MeshStandardMaterial({ color: roomColour(v, hex), roughness: r === undefined ? 0.8 : r, metalness: m || 0 }); x.envMapIntensity = ENV_ROOM; ROOM_MATS.push([x, v, hex]); return x; };
   function setPalette(name) { paletteName = PALETTES[name] || name === 'colour' ? name : 'grey'; tone = PALETTES[paletteName] || PALETTES.grey; ROOM_MATS.forEach(([x, v, hex]) => x.color.setHex(roomColour(v, hex))); return name; }
   const G = { cabDoor: grey(0.28, 0.5), wall: grey(0.93, 0.9), floor: grey(0.40, 0.7), trim: grey(0.9, 0.6), cab: grey(0.24, 0.55), slot: grey(0.06, 0.6), sash: grey(0.1, 0.45), casing: grey(0.74, 0.55),
@@ -1383,17 +1428,33 @@ async function buildRoom(DUST) {
   // night sky beyond the glass, with the glow of a moon just out of frame (up and to the right)
   const skyC = document.createElement('canvas'); skyC.width = 512; skyC.height = 768;
   { const g = skyC.getContext('2d');
-    const v = g.createLinearGradient(0, 0, 0, 768); v.addColorStop(0, '#1c2538'); v.addColorStop(1, '#4a5670');
+    const v = g.createLinearGradient(0, 0, 0, 768); v.addColorStop(0, MOONLIT ? ML.sky[0] : '#1c2538'); v.addColorStop(1, MOONLIT ? ML.sky[1] : '#4a5670');
     g.fillStyle = v; g.fillRect(0, 0, 512, 768);
-    const MX = 268, MY = 284, MR = 21;                                          // tonight's moon, in the upper sash's lower middle pane, clear of the curtain (round three)
-    g.fillStyle = 'rgba(232,238,248,0.55)'; [[226, 236, 1.3], [313, 248, 1.0], [248, 330, 0.9], [334, 312, 1.2]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });   // faint stars
+    const MX = MOONLIT ? 205 : 268, MY = MOONLIT ? 298 : 284, MR = 21;   // moonlit pass: the sky's glow behind the moon's new pane                                          // tonight's moon, in the upper sash's lower middle pane, clear of the curtain (round three)
+    g.fillStyle = MOONLIT ? 'rgba(214,220,230,0.22)' : 'rgba(232,238,248,0.55)'; [[226, 236, 1.3], [313, 248, 1.0], [248, 330, 0.9], [334, 312, 1.2]].forEach(([x, y, r]) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); });   // faint stars
     const r = g.createRadialGradient(MX, MY, MR, MX, MY, 330);
-    r.addColorStop(0, `rgba(214,224,240,${(0.2 + 0.35 * MOON.illum).toFixed(3)})`); r.addColorStop(0.3, 'rgba(150,168,196,0.16)'); r.addColorStop(1, 'rgba(150,168,196,0)');
+    if (MOONLIT) { r.addColorStop(0, `rgba(196,204,218,${(0.08 + 0.3 * MOON.illum).toFixed(3)})`); r.addColorStop(0.35, `rgba(150,160,178,${(0.03 + 0.1 * MOON.illum).toFixed(3)})`); r.addColorStop(1, 'rgba(150,160,178,0)'); }
+    else { r.addColorStop(0, `rgba(214,224,240,${(0.2 + 0.35 * MOON.illum).toFixed(3)})`); r.addColorStop(0.3, 'rgba(150,168,196,0.16)'); r.addColorStop(1, 'rgba(150,168,196,0)'); }
     g.fillStyle = r; g.fillRect(0, 0, 512, 768);
-    drawMoonPhase(g, MX, MY, MR, MOON.age, 'rgba(240,243,248,0.97)', 'rgba(52,64,90,0.45)'); }
+    if (!MOONLIT) drawMoonPhase(g, MX, MY, MR, MOON.age, 'rgba(240,243,248,0.97)', 'rgba(52,64,90,0.45)'); }
   const skyTex = new THREE.CanvasTexture(skyC); skyTex.encoding = THREE.sRGBEncoding;
   const sky = new THREE.Mesh(new THREE.PlaneGeometry(60 * U, 80 * U), new THREE.MeshBasicMaterial({ map: skyTex }));
   sky.position.set(((WX0 + WX1) / 2 + 6) * U, 60 * U, -10 * U); room.add(sky);
+  if (MOONLIT) B(1400, 1, 300, 300, 0.5, RH + 150, G.wall);   // moonlit pass: the back wall carried up past the ceiling (never seen), so the moon's beam enters only by the window
+  if (MOONLIT) {   // moonlit pass: tonight's moon on its own plane just outside the upper sash, centred in a pane from any view, with a soft glow
+    const mc = document.createElement('canvas'); mc.width = mc.height = 512; const g = mc.getContext('2d'); g.scale(2, 2);
+    // second pass: a thin crescent was under a pixel wide at this size and the earthlit disc read as a ring, so the drawn phase never
+    // goes thinner than ML.moonMinCrescent of the way to a quarter, and the unlit part is only just lifted off the sky
+    const fD = Math.min(1 - ML.moonMinCrescent, Math.max(ML.moonMinCrescent, MOON.age / SYNODIC)), ageD = MOON.illum > 0.5 ? MOON.age : fD * SYNODIC;
+    const R = 128 * ML.moonR / ML.moonGlow, gl = g.createRadialGradient(128, 128, R * 0.6, 128, 128, 128), gI = 0.03 + 0.97 * MOON.illum;   // the glow grows with the lit fraction
+    [[0, 0.5], [0.12, 0.3], [0.3, 0.12], [0.6, 0.035], [1, 0]].forEach(([t, a]) => gl.addColorStop(t, `rgba(200,210,226,${(a * gI).toFixed(3)})`));
+    g.fillStyle = gl; g.fillRect(0, 0, 256, 256);
+    if (MOON.illum > 0.01) drawMoonPhase(g, 128, 128, R, ageD, 'rgba(236,239,244,1)', 'rgba(40,46,58,0.35)');   // the unlit part reads as a faint earthlit disc
+    else { g.fillStyle = 'rgba(52,58,70,0.45)'; g.beginPath(); g.arc(128, 128, R, 0, Math.PI * 2); g.fill(); }   // new moon: the dark disc alone
+    const mt = new THREE.CanvasTexture(mc); mt.encoding = THREE.sRGBEncoding;
+    const moonDisc = new THREE.Mesh(new THREE.PlaneGeometry(2 * ML.moonGlow * U, 2 * ML.moonGlow * U), new THREE.MeshBasicMaterial({ map: mt, transparent: true, depthWrite: false, toneMapped: false }));
+    moonDisc.position.set(ML.moonAt[0] * U, ML.moonAt[1] * U, -3.2 * U); moonDisc.renderOrder = 1; room.add(moonDisc);
+  }
   }
   // Rain (2026-11-05, after Maxx's reference): a wide window in a slim dark frame, two tall lower lights under two
   // short transom lights, a deep pale sill; beyond it a misty city seen from high up, layered by distance, with rain
@@ -1861,7 +1922,7 @@ async function buildRoom(DUST) {
         sh.fragmentShader = 'varying float vGlow;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= vGlow;');
         if (o.free) sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n  { float e = smoothstep(0.8, 1.0, vUv.x); diffuseColor.a *= 1.0 - 0.7 * e; }');   // v72: the leading edge thins
       };
-      const m = new THREE.Mesh(geo, mat); m.castShadow = true; m.receiveShadow = true; m.renderOrder = 3; room.add(m);
+      const m = new THREE.Mesh(geo, mat); m.castShadow = !MOONLIT; m.receiveShadow = true; m.renderOrder = 3; room.add(m);   // moonlit pass: sheer linen lets the moonlight through
       const sways = [m];                                                       // round two: the panel and its tieback sway together, very slightly
       if (!o.free) {   // v58: a free panel has no tieback
       // the tieback: a band of the same linen cinched round the bundle, knotted at the front with two short tails,
@@ -2051,7 +2112,14 @@ async function buildRoom(DUST) {
     const DISP = 0.7, height = tx('height'), ao = tx('ao');
     const bmat = new THREE.MeshStandardMaterial({ map: tx('albedo', true), normalMap: tx('normal'), roughnessMap: tx('rough'), roughness: 1, metalness: 0,
       displacementMap: height, displacementScale: DISP * U, aoMap: ao, aoMapIntensity: 1 });
-    bmat.normalScale.set(1.0, 1.0); bmat.envMapIntensity = DIM ? 0.24 : LINEN ? 0.26 : 0.5;   // the brick is darker than the painted walls, so it takes a little more of the room's ambient to sit at their level
+    bmat.normalScale.set(1.0, 1.0); bmat.envMapIntensity = DIM ? 0.24 : LINEN ? 0.26 : 0.5;
+    if (MOONLIT) {   // moonlit pass: the brick's colour taken nearly to grey and its contrast lowered; relief, roughness and joints stay
+      bmat.envMapIntensity = ML.brickEnv;
+      bmat.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\n' +
+        '  { float l = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)); vec3 c = mix(vec3(l), diffuseColor.rgb, ' + ML.brickSat.toFixed(3) + ');\n' +
+        '    diffuseColor.rgb = max(vec3(0.0), mix(vec3(0.067), c, ' + ML.brickContrast.toFixed(3) + ')) * ' + ML.brickGain.toFixed(3) + ' * vec3(0.95, 0.98, 1.04); }'); };
+      bmat.customProgramCacheKey = () => 'brick-moonlit';
+    }   // the brick is darker than the painted walls, so it takes a little more of the room's ambient to sit at their level
     const bg = new THREE.PlaneGeometry(180 * U, RH * U, 720, 416);                   // a vertex every quarter inch
     bg.setAttribute('uv2', bg.attributes.uv);
     const bw = new THREE.Mesh(bg, bmat);
@@ -2178,8 +2246,8 @@ async function buildRoom(DUST) {
         pp.setXYZ(k, (px - PW / 2) * U, -py * U, d * U);
       }
       geo.computeVertexNormals();
-      const front = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, side: THREE.FrontSide }); front.envMapIntensity = ENV_SUBJECT;
-      const back = new THREE.MeshStandardMaterial({ color: 0xe6e0d2, roughness: 0.95, side: THREE.BackSide }); back.envMapIntensity = ENV_SUBJECT;
+      const front = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92, side: THREE.FrontSide }); front.envMapIntensity = MOONLIT ? ML.wallSheetEnv : ENV_SUBJECT;   // moonlit pass: lit as part of the wall, not as a subject
+      const back = new THREE.MeshStandardMaterial({ color: 0xe6e0d2, roughness: 0.95, side: THREE.BackSide }); back.envMapIntensity = MOONLIT ? ML.wallSheetEnv : ENV_SUBJECT;
       const sheet = new THREE.Group(); sheet.position.set(PX * U, PTOP * U, 0.02 * U); sheet.rotation.z = -0.075; room.add(sheet);   // v71: tilted a little to the right
       [front, back].forEach(m => { const o = new THREE.Mesh(geo, m); o.castShadow = o.receiveShadow = true; sheet.add(o); });
       // v71: held up by a letter opener instead of a pin, driven through the top of the sheet into the wall: one piece of
@@ -2197,7 +2265,7 @@ async function buildRoom(DUST) {
             if (x > 7.6) z -= 0.22 * (1 - Math.pow(y / Math.max(0.05, wid(x) / 2), 2)) * Math.min(1, (x - 7.6) / 0.6); }   // the scoop cups
           q.setXYZ(k, x * U, yy * U, z * U); }
         g.computeVertexNormals();
-        const steel = new THREE.MeshStandardMaterial({ color: 0xc4c8cc, metalness: 1, roughness: 0.2 }); steel.envMapIntensity = 0.9;
+        const steel = new THREE.MeshStandardMaterial({ color: 0xc4c8cc, metalness: 1, roughness: 0.2 }); steel.envMapIntensity = MOONLIT ? ML.openerEnv : 0.9;   // moonlit pass: the steel reflects a dark room
         const opener = new THREE.Mesh(g, steel); opener.castShadow = true;
         const dir = new THREE.Vector3(0.3, 0.1, 1).normalize();                 // out of the wall, a little up and to the right
         opener.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir);
@@ -2257,18 +2325,24 @@ async function buildRoom(DUST) {
     const shade = new THREE.Group(); shade.position.y = -3.8 * U; pivot.add(shade);
     const sg = new THREE.CylinderGeometry(3.5 * U, 5.6 * U, 7.6 * U, 64, 1, true);
     const outerMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1, side: THREE.FrontSide }); outerMat.envMapIntensity = 0.1;
+    if (MOONLIT) {   // third pass: a faint warm glow through the shade, strongest at the lower rim (the cylinder's v runs 0 at the opening to 1 at the top)
+      const gc = document.createElement('canvas'); gc.width = 4; gc.height = 64; const g = gc.getContext('2d');
+      for (let i = 0; i < 64; i++) { const v = Math.round(255 * Math.pow((i + 0.5) / 64, ML.shadeFall)); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(0, i, 4, 1); }   // canvas top is the shade's top
+      outerMat.emissiveMap = new THREE.CanvasTexture(gc); outerMat.emissive.setHex(ML.shadeGlowCol); outerMat.emissiveIntensity = ML.shadeGlow;
+    }
     const outer = new THREE.Mesh(sg, outerMat);
     const inner = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: 0x3a2a18, emissive: 0xffb873, emissiveIntensity: 1.25, roughness: 0.9, side: THREE.BackSide }));
     outer.castShadow = true; shade.add(outer, inner);
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(1.1 * U, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }));
     bulb.position.y = 0.6 * U; shade.add(bulb);
     // the lamp's light: a tight warm cone along the shade's axis, laying a defined pool on the desk beside the folder
-    const lampLight = new THREE.SpotLight(0xffbd74, 12, 3.6, 37 * Math.PI / 180, 0.62, 1.25);   // wider and warmer: the whole desk and the wall behind it
+    const lampLight = MOONLIT ? new THREE.SpotLight(0xffbd74, 12, ML.lampRange, ML.lampCone * Math.PI / 180, ML.lampPenumbra, ML.lampDecay)   // moonlit pass: tighter, with falloff
+                              : new THREE.SpotLight(0xffbd74, 12, 3.6, 37 * Math.PI / 180, 0.62, 1.25);   // wider and warmer: the whole desk and the wall behind it
     lampLight.position.set(0, -0.5 * U, 0); shade.add(lampLight); LAMP = lampLight;
     const lt = new THREE.Object3D(); lt.position.set(0, -40 * U, 0); shade.add(lt); lampLight.target = lt;   // follows the tilt
     lampLight.castShadow = true; lampLight.shadow.mapSize.set(SH_LAMP, SH_LAMP); lampLight.shadow.radius = 3; lampLight.shadow.bias = -0.0002; lampLight.shadow.normalBias = 0.002;
     lampLight.shadow.camera.near = 0.05; lampLight.shadow.camera.far = 3;   // v67: twice the detail (not focused: a tighter cone left the floor under the desk unshadowed)
-    const glow = new THREE.PointLight(0xffc183, 0.9, 1.8, 2); glow.position.set(0, -2 * U, 0); shade.add(glow);   // soft halo around the shade
+    const glow = new THREE.PointLight(0xffc183, MOONLIT ? ML.lampGlow : 0.9, 1.8, 2); glow.position.set(0, -2 * U, 0); shade.add(glow);   // soft halo around the shade
   }
   // a messy pair of jeans tossed on the floor (2026-11-04, after Maxx's reference), with a denim weave and stitched seams. Toned by the room palette like the other
   // background objects (Maxx, 2026-11-04): the texture is neutral and the palette supplies the colour.
@@ -2466,6 +2540,28 @@ async function buildRoom(DUST) {
       const back = mesh(new THREE.PlaneGeometry((RX - LX + 60) * U, 9 * U), bm, false); back.rotation.x = -Math.PI / 2; back.position.set((LX + RX) / 2 * U, 0.015 * U, (0.6 + 4.5) * U);
       const left = mesh(new THREE.PlaneGeometry(9 * U, 180 * U), bm.clone(), false); left.rotation.set(-Math.PI / 2, 0, -Math.PI / 2); left.position.set((LX + 0.6 + 4.5) * U, 0.015 * U, 90 * U);
       back.renderOrder = left.renderOrder = 1;
+    }
+    if (MOONLIT) {   // moonlit pass: deeper contact shadows under everything on the floor, and the room's corners darkened
+      const A = ML.contact;
+      blob(-47.5, 12.5, 38, 34, 0.05, 0.85 * A);                                             // the drawer pedestal (skewed 3 degrees, nudged off the wall)
+      blob(-48, 12.5, 30, 26, 0.05, 0.6 * A);
+      blob(5.75, 13.5, 64, 36, 0, 0.5 * A);                                                  // the whole desk, between its legs
+      [[-19.65, 2.8], [-19.65, 25.2], [31.15, 2.8], [31.15, 25.2]].forEach(([x, z]) => blob(x, z, 3.2, 3.2, 0, 0.95 * A));   // tight cores at the desk's feet
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => { const p = chair.localToWorld(new THREE.Vector3(sx * 8.2 * U, 0, sz * 7.8 * U)); blob(p.x / U, p.z / U, 2.6, 2.6, 0, 0.9 * A); });
+      { const c = chair.localToWorld(new THREE.Vector3(0, 0, 0)); blob(c.x / U, c.z / U, 22, 20, -chair.rotation.y, 0.4 * A); }
+      blob(-40, 38.5, 36, 24, 0.25, 0.7 * A);                                                // the clothes pile
+      blob(-30.8, 21.3, 17, 14, 0.06, 0.55 * A);                                             // the floor books
+      blob(-28.6, 10, 10, 10, 0, 0.75 * A);                                                  // the lamp's ring base
+      const grad = (w, h, x0, y0, x1, y1, a) => canvasTex(w, h, (g) => { const v = g.createLinearGradient(x0, y0, x1, y1);
+        v.addColorStop(0, `rgba(0,0,0,${a})`); v.addColorStop(0.4, `rgba(0,0,0,${(a * 0.35).toFixed(3)})`); v.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = v; g.fillRect(0, 0, w, h); }, false);
+      const wallShade = (tex, w, h, x, y, z, ry) => { const m = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
+        const o = mesh(new THREE.PlaneGeometry(w * U, h * U), m, false); o.position.set(x * U, y * U, z * U); o.rotation.y = ry || 0; o.renderOrder = 1; return o; };
+      wallShade(grad(8, 128, 0, 0, 0, 128, 0.42 * A), 104, 18, -6, 66 - 1.4 - 9, 0.05);                 // a soft shadow band under the shelf
+      wallShade(grad(8, 128, 0, 128, 0, 0, 0.38 * A), 260, 22, 60, 11, 0.04);                         // the back wall darkening toward the floor
+      wallShade(grad(128, 8, 0, 0, 128, 0, 0.5 * A), 20, RH, LX + 10, RH / 2, 0.06);                    // the back wall darkening into the brick corner
+      wallShade(grad(8, 128, 0, 128, 0, 0, 0.45 * A), 180, 22, LX + 1.15, 11, 90, Math.PI / 2);       // the brick darkening toward the floor
+      wallShade(grad(128, 8, 0, 0, 128, 0, 0.55 * A), 22, RH, LX + 1.2, RH / 2, 11, Math.PI / 2);     // the brick darkening into the corner
+      wallShade(grad(8, 128, 0, 0, 0, 128, 0.4 * A), 260, 26, 60, RH - 13, 0.05);                      // and toward the ceiling
     }   // (round two: the hard black skirting lines are gone; the soft band alone grounds the walls)
 
     // ---- 5. wear: uneven sheen on walls and floor, glossier hand-worn drawer fronts, faint scuffs where the chair moves ----
@@ -2499,6 +2595,7 @@ async function buildRoom(DUST) {
         const head = mesh(new THREE.SphereGeometry(1, 10, 6), stem); head.scale.set(0.35 * U, 1.0 * U, 0.35 * U); head.position.copy(c.getPointAt(1)).add(new THREE.Vector3(0, 0.6 * U, 0)); }); }
 
     // ---- 6. atmosphere: a faint cone of lamplight in the air, with dust drifting through it ----
+    let lampLit = null;   // third pass (moonlit): fades the lamp's source glow with the cone
     if (LAMP) {
       const shade = LAMP.parent, L = 30, R0 = 5.2, R1 = 18;
       const cg = new THREE.CylinderGeometry(R0 * U, R1 * U, L * U, 48, 1, true); cg.translate(0, (-3.8 - L / 2) * U, 0);
@@ -2510,6 +2607,16 @@ async function buildRoom(DUST) {
           ' float f = pow(1.0 - vT, 1.4) * smoothstep(0.0, 0.08, vT) * facing; gl_FragColor = vec4(color * strength * f, 1.0); }',
         transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
       const cone = new THREE.Mesh(cg, coneMat); cone.renderOrder = 4; shade.add(cone);
+      if (MOONLIT) {   // third pass: a small hot point at the shade's opening and a warm pool on the wall behind the lamp; both additive, unlit, no shadow maps
+        const soft = (stops) => canvasTex(64, 64, (g) => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); stops.forEach(([t, v]) => r.addColorStop(t, `rgb(${v},${v},${v})`)); g.fillStyle = r; g.fillRect(0, 0, 64, 64); }, false);
+        const bm = new THREE.SpriteMaterial({ map: soft([[0, 255], [0.08, 160], [0.25, 55], [0.5, 12], [1, 0]]), color: new THREE.Color(ML.bloomCol).multiplyScalar(ML.bloom), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+        const bloom = new THREE.Sprite(bm); bloom.scale.set(ML.bloomSize * U, ML.bloomSize * U, 1); bloom.position.set(0, (-3.8 - ML.bloomDrop) * U, 0); bloom.renderOrder = 4; shade.add(bloom);
+        const sw = new THREE.Vector3(); shade.updateWorldMatrix(true, false); shade.getWorldPosition(sw);
+        const pm = new THREE.MeshBasicMaterial({ map: soft([[0, 255], [0.2, 190], [0.45, 80], [0.7, 18], [1, 0]]), color: new THREE.Color(ML.wallPoolCol).multiplyScalar(ML.wallPool), blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -8 });
+        const pool = mesh(new THREE.PlaneGeometry(ML.wallPoolSize[0] * U, ML.wallPoolSize[1] * U), pm, false); pool.position.set(sw.x + ML.wallPoolAt[0] * U, sw.y + ML.wallPoolAt[1] * U, 0.07 * U); pool.renderOrder = 1;
+        const shadeMat = shade.children.find(o => o.material && o.material.emissiveMap).material;   // the outer shade
+        lampLit = k => { shadeMat.emissiveIntensity = ML.shadeGlow * k; bm.opacity = k; pm.opacity = k; bloom.visible = pool.visible = k > 0.002; };
+      }
       const N = 140, dpos = new Float32Array(N * 3), seeds = [];
       for (let i = 0; i < N; i++) { const t = 0.08 + rnd() * 0.85, a = rnd() * 6.28, rr = Math.sqrt(rnd()) * (R0 + (R1 - R0) * t) * 0.85;
         seeds.push({ x: Math.cos(a) * rr, y: -3.8 - t * L, z: Math.sin(a) * rr, ph: rnd() * 6.28, sp: 0.15 + rnd() * 0.3 }); }
@@ -2522,7 +2629,8 @@ async function buildRoom(DUST) {
       place(0); dg.attributes.position.needsUpdate = true;
       EVERY_FRAME.push(now => {
         const k = roomness(0.006, 0.044);                                           // fades away as the camera moves in to read
-        coneMat.uniforms.strength.value = 0.12 * k * (LAMP.visible ? 1 : 0); dm.opacity = 0.55 * k;
+        coneMat.uniforms.strength.value = (MOONLIT ? 0.09 : 0.12) * k * (LAMP.visible ? 1 : 0); dm.opacity = 0.55 * k;
+        if (lampLit) lampLit(k * (LAMP.visible ? 1 : 0));   // third pass: the shade's glow, the hot point and the wall pool fade with the cone
         if (!still) { place(now / 1000); dg.attributes.position.needsUpdate = true; }
       });
     }
@@ -2547,7 +2655,7 @@ async function buildRoom(DUST) {
     const [shStrength, shSpeed, shContrast] = DP.shimmer;
     const uni = { uScale: { value: 800 }, uTime: { value: 0 }, uLampPos: { value: new THREE.Vector3() }, uLampDir: { value: new THREE.Vector3(0, -1, 0) },
       uLampOn: { value: 1 }, uWinDir: { value: new THREE.Vector3(0, 0, 1) }, uWin: { value: new THREE.Vector4(WX0 * U, WX1 * U, WZ0 * U, WZ1 * U) }, uWinCol: { value: new THREE.Color(LINEN ? 0xffb07a : 0xc9d6ee) },
-      uShimmer: { value: new THREE.Vector3(shStrength, shSpeed, shContrast) }, uFade: { value: 1 }, uCut: { value: new THREE.Vector2(39 * U, 45 * U) }, uWinGain: { value: RAIN ? 0.32 : LINEN ? 0.8 : 1.0 } };   // the Rain window is wide and bright: fewer motes catch it
+      uShimmer: { value: new THREE.Vector3(shStrength, shSpeed, shContrast) }, uFade: { value: 1 }, uCut: { value: new THREE.Vector2(39 * U, 45 * U) }, uWinGain: { value: MOONLIT ? ML.dustMoon * MOON_K : RAIN ? 0.32 : LINEN ? 0.8 : 1.0 } };   // the Rain window is wide and bright: fewer motes catch it
     const mat = new THREE.ShaderMaterial({ uniforms: uni, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       vertexShader: `
         attribute float size; attribute float seed;
@@ -2560,13 +2668,13 @@ async function buildRoom(DUST) {
           gl_PointSize = clamp(px, 1.2, 18.0);
           // light reaching the mote: the lamp's cone, and the window's beam (traced back to the window opening in the back wall)
           vec3 L = position - uLampPos; float dl = length(L);
-          float lamp = smoothstep(0.66, 0.88, dot(L / dl, uLampDir)) / (1.0 + dl * dl * 1.2) * uLampOn;
+          float lamp = smoothstep(${MOONLIT ? '0.8, 0.93' : '0.66, 0.88'}, dot(L / dl, uLampDir)) / (1.0 + dl * dl * 1.2) * uLampOn;   // moonlit pass: the lamp's own cone
           float t = -position.z / uWinDir.z; vec3 h = position + uWinDir * t;
           float win = (t > 0.0 ? 1.0 : 0.0) * smoothstep(uWin.x, uWin.x + 0.05, h.x) * smoothstep(uWin.y, uWin.y - 0.05, h.x)
                     * smoothstep(uWin.z, uWin.z + 0.05, h.y) * smoothstep(uWin.w, uWin.w - 0.05, h.y);
           float tw = 0.5 + 0.5 * sin(uTime * 6.2832 * uShimmer.y / 31.0 + seed * 40.0);          // DP+ shimmer
           float shimmer = mix(1.0, mix(1.0 - uShimmer.z, 1.0, tw), uShimmer.x);
-          vCol = (vec3(1.0, 0.86, 0.68) * lamp * 3.4 + uWinCol * win * 1.3 * uWinGain + vec3(0.025)) * shimmer;
+          vCol = (vec3(1.0, 0.86, 0.68) * lamp * 3.4 + uWinCol * win * 1.3 * uWinGain + vec3(${MOONLIT ? '0.0' : '0.025'})) * shimmer;   // moonlit pass: no glow of its own, so a mote shows only in the lamp's cone or the moon's shaft
           vA = clamp(px / 1.2, 0.0, 1.0) * uFade * (0.55 + 0.45 * fract(seed * 7.13))
                    * (1.0 - smoothstep(uCut.x, uCut.y, position.z));                      // only from the chair back to the window: none in the air between the chair and the camera           // tiny motes fade rather than vanish
           vOval = vec2(1.0, 1.0 + 0.18 * fract(seed * 3.7));                                     // DP+: slightly oval
@@ -2756,7 +2864,26 @@ async function buildRoom(DUST) {
   const UP = new THREE.Vector3(0, 1, 0);
   const ROOM = SETTING === 'dress' ? { pos: P(-38, -118, 50), tgt: P(6, -6, 43), up: UP, par: 0.05 }   // three-quarter from the left (Fable, v58)
              : SETTING === 'cafe' ? { pos: P(-34, -382, 63), tgt: P(-20, -60, 31), up: UP, par: 0.05 }
+                                  : MOONLIT ? { pos: new THREE.Vector3(), tgt: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0), par: 0.05 }   // set by fitRoom()
                                   : { pos: P(DX - 8, -150, 64), tgt: P(DX - 8, 0, 32), up: new THREE.Vector3(0, 1, 0), par: 0.05 };
+  // Moonlit pass: the room view as a closer three-quarter view, the desk on the left third and the window on the right with
+  // tonight's moon in it; and a tall framing for phones (narrow frames), the desk below and the window above it.
+  // Blender inches through P(x, y, z): x right, y into the room (negative toward the camera), z up.
+  const ROOM_WIDE = { pos: P(-26, -132, 69), tgt: P(27, -14, 33), hfov: 64 * Math.PI / 180 };      // a little wider than the reading lens (62 deg)
+  const ROOM_TALL = { pos: P(-30, -100, 78), tgt: P(30, -8, 33), vfov: 74 };                          // vfov in degrees, for frames narrower than TALL_ASPECT
+  const TALL_ASPECT = 0.8;
+  let roomTall = null;
+  function fitRoom() {                                       // the room view for the frame's shape; called on every resize
+    if (!MOONLIT) return false;
+    const tall = camera.aspect < TALL_ASPECT;
+    if (tall === roomTall) return false;
+    roomTall = tall; const src = tall ? ROOM_TALL : ROOM_WIDE;
+    ROOM.pos.copy(src.pos); ROOM.tgt.copy(src.tgt); return true;
+  }
+  camera.aspect = (canvas.clientWidth || 16) / (canvas.clientHeight || 10); fitRoom();
+  // the room's lens: the wide frame keeps the reading view's; the tall frame opens to a set vertical angle
+  const roomHfov = () => !MOONLIT ? HFOV_ROOM : roomTall ? 2 * Math.atan(Math.tan(ROOM_TALL.vfov * Math.PI / 360) * camera.aspect) : ROOM_WIDE.hfov;
+  if (MOONLIT) hfov = roomHfov();
 
   // ---------- the café's people (2026-11-05): Vathography relief figures ----------
   // Intentional depth (after Maxx's reference), rendered by Vathography itself: all seven figures were put in one depth
@@ -2995,11 +3122,14 @@ async function buildRoom(DUST) {
     if (ray.intersectObjects(folderMeshes, false).length) read();
   });
 
-  function fovFor(hf) { if (VCAM) { applyVProj(); return; } camera.fov = Math.min(SETTING === 'cafe' ? 82 : 70, 2 * Math.atan(Math.tan(hf / 2) / camera.aspect) * 180 / Math.PI); camera.updateProjectionMatrix(); }
+  function fovFor(hf) { if (VCAM) { applyVProj(); return; } camera.fov = Math.min(SETTING === 'cafe' ? 82 : MOONLIT && roomTall ? 70 + (Math.max(70, ROOM_TALL.vfov) - 70) * roomness(0.006, 0.004) : 70, 2 * Math.atan(Math.tan(hf / 2) / camera.aspect) * 180 / Math.PI); camera.updateProjectionMatrix(); }
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight, pr = renderer.getPixelRatio();
     if (canvas.width !== Math.floor(w * pr) || canvas.height !== Math.floor(h * pr)) {
-      renderer.setSize(w, h, false); camera.aspect = w / h; fovFor(hfov);
+      renderer.setSize(w, h, false); camera.aspect = w / h;
+      if (fitRoom() && S.view === 'room' && !anim && !S.orbit) { cur.pos.copy(ROOM.pos); cur.tgt.copy(ROOM.tgt); }   // the frame changed shape: the matching room view
+      if (MOONLIT) hfov = HFOV_READ + (roomHfov() - HFOV_READ) * roomness(0.006, 0.004);
+      fovFor(hfov);
     }
   }
   const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -3070,9 +3200,26 @@ async function buildRoom(DUST) {
   }
   document.getElementById('labelsBtn').addEventListener('click', e => { labelsOn = !labelsOn; e.currentTarget.setAttribute('aria-pressed', String(labelsOn)); });
   const pv = new THREE.Vector3();
+  // Moonlit pass: the pills no longer sit over the lamp and the lit sheets all the time. They show while the pointer is on the
+  // folder or the scene has keyboard focus, and on touch screens fade in once after the room settles, then out. They stay in
+  // the page (opacity only) and describe the scene for screen readers, so the information is always there.
+  let callK = 0, callUntil = 0, callT = 0;
+  const HOVERLESS = matchMedia('(hover: none)').matches;
+  if (MOONLIT) {
+    canvas.setAttribute('aria-describedby', 'calloutA calloutB');
+    if (HOVERLESS) D.on((st, ch) => { if (ch.indexOf('scene') >= 0 && st.scene === 'ready') setTimeout(() => { callUntil = performance.now() + ML.calloutHold; }, ML.calloutDelay); });
+  }
+  function calloutReveal() {
+    if (!MOONLIT || S.orbit) return 1;
+    let focused = false; try { focused = canvas.matches(':focus-visible'); } catch (e) { focused = document.activeElement === canvas; }
+    const want = canvas.classList.contains('over-folder') || focused || performance.now() < callUntil ? 1 : 0;
+    const now = performance.now(), dt = callT ? Math.min(0.5, (now - callT) / 1000) : 0; callT = now;
+    callK = REDUCED.matches ? want : callK + (want - callK) * (1 - Math.exp(-dt / 0.18));   // about a third of a second to fade, at any frame rate
+    return callK < 0.004 ? 0 : callK;
+  }
   function placeCallouts() {
     if (!calloutAnchors) return;
-    const vis = labelsOn && !S.orbit ? roomness(0.007, 0.005) : (labelsOn && S.orbit ? 1 : 0);   // fade out in the reading view
+    const vis = (labelsOn && !S.orbit ? roomness(0.007, 0.005) : (labelsOn && S.orbit ? 1 : 0)) * calloutReveal();   // fade out in the reading view
     [CA, CB].forEach(c => c.style.opacity = vis); CL.style.opacity = vis; CL.classList.toggle('off', vis === 0);
     if (vis === 0) return;
     // one leader line from the sheet to the AUTHOR pill; the FROM pill stacks just beneath it (2026-11-04)
@@ -3092,6 +3239,22 @@ async function buildRoom(DUST) {
     [CA, CB].forEach(c => c.style.visibility = ok ? 'visible' : 'hidden');
   }
 
+  // Moonlit pass: the lamp carried into the reading view. A warm falloff away from the lamp's side of the sheet and a slight
+  // vignette, laid over the canvas with multiply, so ink and paper darken together and the text keeps its contrast.
+  let wash = null;
+  const washP = new THREE.Vector3();
+  if (MOONLIT && ML.readWarm > 0) { wash = document.createElement('div'); wash.id = 'lampWash'; wash.setAttribute('aria-hidden', 'true');
+    canvas.insertAdjacentElement('afterend', wash); }
+  function placeWash() {
+    if (!wash) return;
+    const k = (1 - roomness(0.006, 0.03)) * ML.readWarm;
+    wash.style.opacity = k.toFixed(3);
+    if (k <= 0 || !LAMP) return;
+    LAMP.getWorldPosition(washP).project(camera);
+    let x = (washP.x + 1) / 2, y = (1 - washP.y) / 2; if (washP.z > 1) { x = 1 - x; y = 1 - y; }
+    wash.style.setProperty('--lx', (Math.max(-0.4, Math.min(1.4, x)) * 100).toFixed(1) + '%');
+    wash.style.setProperty('--ly', (Math.max(-0.4, Math.min(1.4, y)) * 100).toFixed(1) + '%');
+  }
   const side = new THREE.Vector3(), upv = new THREE.Vector3();
   // the stage scrolled out of view (a long host page), or the text showing: the room is left as it is
   if (window.IntersectionObserver) new IntersectionObserver(([en]) => D.set({ visible: en.isIntersecting }), { threshold: 0 }).observe(document.getElementById('stage'));
@@ -3128,8 +3291,8 @@ async function buildRoom(DUST) {
       const q = readingPose(sRead); cur.pos.copy(q.pos); cur.tgt.copy(q.tgt); cur.up.copy(q.up); cur.par = q.par;
       const [lo, hi] = sBounds(); progressFill.style.height = (hi > lo ? (sRead - lo) / (hi - lo) * 100 : 0).toFixed(1) + '%';
     }
-    if (HFOV_ROOM !== HFOV_READ) {                          // the café: room views are wide, the reading view is the Nook's
-      const k = roomness(0.006, 0.004), want = HFOV_READ + (HFOV_ROOM - HFOV_READ) * k;
+    if (roomHfov() !== HFOV_READ) {                         // the café: room views are wide, the reading view is the Nook's (and the Nook's tall frame, moonlit pass)
+      const k = roomness(0.006, 0.004), want = HFOV_READ + (roomHfov() - HFOV_READ) * k;
       if (Math.abs(want - hfov) > 1e-4) { hfov = want; fovFor(hfov); }
     }
     if (S.orbit && controls) {
@@ -3145,7 +3308,7 @@ async function buildRoom(DUST) {
       camera.position.addScaledVector(upv, Math.sin(tt * 2 * Math.PI / 10) * 0.008 * k).addScaledVector(side, Math.sin(tt * 2 * Math.PI / 23 + 1) * 0.006 * k); }
     camera.lookAt(cur.tgt);
     PRE_RENDER.forEach(f => f()); renderer.render(scene, camera);
-    placeCallouts();
+    placeCallouts(); placeWash();
     requestAnimationFrame(tick);
   }
 
