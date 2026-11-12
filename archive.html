@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notturno · Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+/* the same plain white and type as text.html. A list only: which poems have run, never their text. */
+:root { --ground: #ffffff; --ink: #1b1b1b; --soft: #55575b; --faint: #8b8378; --rule: #e9e6e0;
+  --serif: "EB Garamond", Garamond, "Times New Roman", serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--ground); color: var(--ink); font-family: var(--serif);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(28px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px)); }
+main { max-width: 34em; margin: 0 auto; }
+h1 { margin: 0 0 .2em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75rem); line-height: 1.2; }
+.lead { margin: 0 0 1.6em; color: var(--soft); font-size: 1.02rem; }
+ol { list-style: none; margin: 0; padding: 0; }
+li { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 0 1em; padding: .8em 0; border-top: 1px solid var(--rule); }
+li:last-child { border-bottom: 1px solid var(--rule); }
+time { color: var(--faint); font-size: .95rem; font-variant-numeric: tabular-nums; padding-top: .12em; }
+.t { margin: 0; font-weight: 500; font-size: 1.12rem; line-height: 1.3; overflow-wrap: break-word; }
+.a { margin: 0; font-style: italic; color: var(--soft); }
+.f { margin: .1em 0 0; font-size: .95rem; color: var(--faint); }
+.s { margin: .25em 0 0; font-size: .95rem; }
+a { color: inherit; text-decoration-color: #b9b3a8; text-underline-offset: .18em; }
+a:hover { text-decoration-color: currentColor; }
+.empty, .back { color: var(--soft); }
+.back { margin: 1.8em 0 0; font-size: .98rem; }
+@media (max-width: 26em) { li { grid-template-columns: 1fr; } time { padding: 0 0 .1em; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Archive</h1>
+  <p class="lead">Poems that have run here. Each was up for one night; this is a list, not the poems themselves.</p>
+  <ol id="list" aria-live="polite"><li class="empty" style="display:block">Loading the list.</li></ol>
+  <p class="back"><a href="text.html">Tonight’s poem</a></p>
+</main>
+<script>
+(function () {
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function when(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? MONTHS[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1] : ''; }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function get(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  var list = document.getElementById('list');
+  function say(msg) { list.textContent = ''; var li = el('li', 'empty', msg); li.style.display = 'block'; list.appendChild(li); }
+  Promise.all([get('archive.json'), get('poem.json')]).then(function (r) {
+    var arc = r[0], now = r[1];
+    if (!arc || !Array.isArray(arc.poems)) { say('The list could not be loaded just now.'); return; }
+    // previously run poems only: tonight's is on the page itself, not here
+    var poems = arc.poems.filter(function (p) { return p && p.title && p.date && !(now && now.date && p.date === now.date); })
+      .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+    if (!poems.length) { say('Nothing here yet: the first poem is still up.'); return; }
+    list.textContent = '';
+    poems.forEach(function (p) {
+      var li = el('li'), t = el('time', '', when(p.date)), box = el('div');
+      t.setAttribute('datetime', p.date);
+      box.appendChild(el('p', 't', p.title));
+      if (p.author) box.appendChild(el('p', 'a', p.author));
+      if (p.collection || p.year) { var f = el('p', 'f'); if (p.collection) { f.append('from '); f.appendChild(el('i', '', p.collection)); } if (p.year) f.append((p.collection ? ' \u00b7 ' : '') + p.year); box.appendChild(f); }
+      if (typeof p.url === 'string' && /^https:\/\//.test(p.url)) {       // where the poem lives (for example its American Life in Poetry column)
+        var s = el('p', 's'), a = el('a', '', 'Read it at ' + (p.source || 'its source')); a.href = p.url; a.target = '_blank'; a.rel = 'noopener'; s.appendChild(a); box.appendChild(s);
+      }
+      li.appendChild(t); li.appendChild(box); list.appendChild(li);
+    });
+  });
+})();
+</script>
+</body>
+</html>
