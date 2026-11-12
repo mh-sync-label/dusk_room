@@ -25,7 +25,7 @@ and takes over on its own if the 3D scene cannot run.
 - Where a poem lives elsewhere (an American Life in Poetry column, say), give `poem.json` two more fields:
   `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view, `text.html` and the archive
   then show a "Read it at American Life in Poetry" link. Only `https://` links are shown.
-- Printing: the Text only view and `text.html` have a "Print this poem" link that prints the poem alone.
+- Printing: the Text only view and `text.html` have a "Print" link that prints the poem alone.
 - Embedding: the page detects when it is inside an iframe and fills the frame edge to edge; `?embed=1` forces the same.
   `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
   time (ms per frame and fps, averaged over the last second), the shadow-map rate, and the pixel ratio in the stage's
