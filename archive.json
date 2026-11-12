@@ -1,0 +1,17 @@
+{
+ "note": "Poems that have run, newest first. A list only: no poem text is kept here. Updated by tools/archive_add.py.",
+ "poems": [
+  {
+   "date": "2026-11-10",
+   "title": "Thanks",
+   "author": "W. S. Merwin",
+   "collection": "The Rain in the Trees",
+   "year": 1988
+  },
+  {
+   "date": "2026-11-08",
+   "title": "[You don’t know the day until]",
+   "author": "Wendell Berry"
+  }
+ ]
+}
