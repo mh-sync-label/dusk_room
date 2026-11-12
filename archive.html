@@ -7,75 +7,136 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
 <style>
-/* the same plain white and type as text.html. A list only: which poems have run, never their text. */
-:root { --ground: #ffffff; --ink: #1b1b1b; --soft: #55575b; --faint: #8b8378; --rule: #e9e6e0;
+/* The archive: which poems have run, never their text. Set like the widget's poem sheet (the round chip at the head, the
+   sheet's type and quiet lines) on the site's plain white (text.html). --quiet is the sheet's faint, darkened to 5.5:1 on
+   white because here the dates and the "from" lines carry information. */
+:root { --ground: #ffffff; --ink: #1b1b1b; --soft: #55575b; --quiet: #6f685e; --hair: #cfc9be; --chip: #161616;
   --serif: "EB Garamond", Garamond, "Times New Roman", serif; color-scheme: light; }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
-body { background: var(--ground); color: var(--ink); font-family: var(--serif);
+body { background: var(--ground); color: var(--ink); font-family: var(--serif); font-size: 1.0625rem; line-height: 1.4;
+  -webkit-text-size-adjust: 100%; text-rendering: optimizeLegibility;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: max(28px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px)); }
-main { max-width: 34em; margin: 0 auto; }
-h1 { margin: 0 0 .2em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75rem); line-height: 1.2; }
-.lead { margin: 0 0 1.6em; color: var(--soft); font-size: 1.02rem; }
-ol { list-style: none; margin: 0; padding: 0; }
-.mark { display: block; width: 9.5rem; max-width: 60%; height: auto; margin: 0 0 1.3em -.15rem; }
-h2 { margin: 1.9em 0 .55em; font-weight: 400; font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-h2:first-of-type { margin-top: 0; }
-li { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 0 1em; padding: .8em 0; border-top: 1px solid var(--rule); }
-li:last-child { border-bottom: 1px solid var(--rule); }
-time { color: var(--faint); font-size: .95rem; font-variant-numeric: tabular-nums; padding-top: .12em; }
-.t { margin: 0; font-weight: 500; font-size: 1.12rem; line-height: 1.3; overflow-wrap: break-word; }
-.a { margin: 0; font-style: italic; color: var(--soft); }
-.f { margin: .1em 0 0; font-size: .95rem; color: var(--faint); }
-.s { margin: .25em 0 0; font-size: .95rem; }
-a { color: inherit; text-decoration-color: #b9b3a8; text-underline-offset: .18em; }
+  padding-block: max(clamp(24px, 6vh, 64px), env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px)); }
+main { max-width: 36rem; margin: 0 auto; }
+a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-decoration-color: var(--hair); text-underline-offset: .2em; }
 a:hover { text-decoration-color: currentColor; }
-.empty, .back { color: var(--soft); }
-.back { margin: 1.8em 0 0; font-size: .98rem; }
-@media (max-width: 26em) { li { grid-template-columns: 1fr; } time { padding: 0 0 .1em; } }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 2px; }
+
+/* the head: the chip, centred as on the sheet, leads back to tonight's poem */
+.chip { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 2.4rem; border-radius: 50%;
+  background: var(--chip); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.chip img { display: block; width: 27px; height: auto; margin-top: 1px; }
+.chip:focus-visible { outline-offset: 4px; border-radius: 50%; }
+h1 { margin: 0 0 .3em; font-weight: 500; font-size: clamp(1.6rem, 5vw, 1.85rem); line-height: 1.15; }
+.lead { margin: 0; color: var(--soft); }
+.lead + .lead { margin-top: .15em; }
+
+/* the list: months as quiet italic heads, each night with its date in the margin */
+#list { margin-top: 2.6rem; }
+h2 { margin: 2.4rem 0 .9rem; font-weight: 400; font-style: italic; font-size: 1rem; color: var(--soft); }
+h2:first-child { margin-top: 0; }
+ol { list-style: none; margin: 0; padding: 0; }
+li { position: relative; display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: 0 .9rem; padding: .55rem 0 .7rem; }
+time { color: var(--quiet); font-size: .9rem; font-variant-numeric: tabular-nums; line-height: 1.3; padding-top: .3rem; white-space: nowrap; }
+.t { margin: 0; font-weight: 500; font-size: 1.18rem; line-height: 1.3; overflow-wrap: break-word; text-wrap: pretty; }
+/* the whole entry is the title's target (a comfortable tap); the focus ring stays on the title itself */
+.t a::after { content: ""; position: absolute; inset: 0; }
+.t a:hover { text-decoration-color: currentColor; }
+.nb { white-space: nowrap; }
+.out { display: inline-block; width: .52em; height: .52em; margin-left: .22em; vertical-align: .32em; color: var(--quiet); }
+.a { margin: .05em 0 0; font-style: italic; color: var(--soft); }
+.f, .w { margin: .1em 0 0; font-size: .92rem; color: var(--quiet); }
+.w { margin-top: .2em; }
+.now .w { color: var(--ink); font-style: italic; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.note { margin: 0; color: var(--soft); }
+
+/* the foot: tonight's poem, and the copyright as the quietest line */
+footer { max-width: 36rem; margin: 3.4rem auto 0; font-size: .95rem; }
+footer p { margin: 0; }
+footer a { display: inline-block; padding-block: .6rem; color: var(--soft); }
+footer a:hover { color: var(--ink); }
+.copy { margin-top: .4rem; font-size: .85rem; color: var(--quiet); }
+
+@media (max-width: 380px) { li { grid-template-columns: 3.1rem minmax(0, 1fr); gap: 0 .75rem; } }
+@media print {
+  @page { margin: 18mm 20mm; }
+  body { padding: 0; font-size: 11pt; color: #000; }
+  :root { --soft: #000; --quiet: #333; --ink: #000; }
+  main, footer { max-width: none; }
+  .chip { margin: 0 0 14pt; width: 30pt; height: 30pt; } .chip img { width: 17pt; }
+  h1 { font-size: 18pt; } #list { margin-top: 16pt; } h2 { margin: 14pt 0 4pt; }
+  li { padding: 3pt 0 5pt; break-inside: avoid; } h2 { break-after: avoid; }
+  a { text-decoration: none; outline: none !important; } .out { display: none; }
+  footer { margin-top: 18pt; } footer .back { display: none; }
+}
 </style>
 </head>
 <body>
 <main>
-  <a href="index.html" aria-label="Notturno"><img class="mark" src="assets/notturno-wordmark.svg" width="2370" height="1699" alt="Notturno"></a>
+  <a class="chip" href="index.html" title="Tonight’s poem"><img src="assets/notturno-logo.png" width="108" height="91" alt="Notturno"></a>
   <h1>Archive</h1>
-  <p class="lead">Each poem was up for one night.</p>
-  <div id="list" aria-live="polite"><p class="empty">Loading the list.</p></div>
-  <p class="back"><a href="text.html">Tonight’s poem</a></p>
+  <p class="lead">Each poem was up for two nights.</p>
+  <p class="lead">The poems are not kept here. Each title leads to where it can be read or found.</p>
+  <div id="list" aria-live="polite"><p class="note">Loading the list…</p></div>
 </main>
+<footer>
+  <p class="back"><a href="index.html">Tonight’s poem</a></p>
+  <p class="copy">© 2026 Maxx Hillery</p>
+</footer>
 <script>
 (function () {
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var SVG = 'http://www.w3.org/2000/svg';
   function parts(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? { y: +m[1], mo: +m[2] - 1, d: +m[3] } : null; }
   function month(d) { var p = parts(d); return p ? MONTHS[p.mo] + ' ' + p.y : ''; }                       // the heading a night files under
   function day(d) { var p = parts(d); return p ? DAYS[new Date(Date.UTC(p.y, p.mo, p.d)).getUTCDay()] + ' ' + p.d : ''; }
+  function longDay(d) { var p = parts(d); return p ? p.d + ' ' + MONTHS[p.mo] + ' ' + p.y : ''; }
   // every entry leads somewhere: its own page where it has one, otherwise a library search for the book (or the poet)
   function library(p) { return 'https://search.worldcat.org/search?q=' + encodeURIComponent((p.collection ? p.collection + ' ' : '') + (p.author || p.title)); }
+  function own(p) { return typeof p.url === 'string' && /^https:\/\/[^\s"'<>]+$/.test(p.url); }
+  function str(v) { return v == null ? '' : String(v); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function arrow() {                                                                                       // the "leaves this site" mark
+    var s = document.createElementNS(SVG, 'svg'), path = document.createElementNS(SVG, 'path');
+    s.setAttribute('viewBox', '0 0 10 10'); s.setAttribute('class', 'out'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('focusable', 'false');
+    path.setAttribute('d', 'M2 8 L8 2 M3.4 2 H8 V6.6'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '1.1'); path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
+    s.appendChild(path); return s;
+  }
   function get(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
   var list = document.getElementById('list');
-  function say(msg) { list.textContent = ''; list.appendChild(el('p', 'empty', msg)); }
+  function say(msg) { list.textContent = ''; list.appendChild(el('p', 'note', msg)); }
   Promise.all([get('archive.json'), get('poem.json')]).then(function (r) {
-    var arc = r[0], now = r[1];
-    if (!arc || !Array.isArray(arc.poems)) { say('The list could not be loaded just now.'); return; }
-    // previously run poems only: tonight's is on the page itself, not here
-    var poems = arc.poems.filter(function (p) { return p && p.title && p.date && !(now && now.date && p.date === now.date); })
+    var arc = r[0], now = r[1], tonight = now && parts(now.date) ? now.date : null;
+    if (!arc || !Array.isArray(arc.poems)) { say('The list could not be loaded just now. Please try again in a little while.'); return; }
+    // nothing after tonight's poem is listed before its night; tonight's own entry is marked and leads to the main page
+    var poems = arc.poems.filter(function (p) { return p && p.title && parts(p.date) && !(tonight && p.date > tonight); })
       .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
-    if (!poems.length) { say('Nothing here yet: the first poem is still up.'); return; }
+    if (!poems.length) { say('No poems have run yet.'); return; }
     list.textContent = '';
     var ol = null, head = '';
-    poems.forEach(function (p) {
+    poems.forEach(function (p, i) {
       if (month(p.date) !== head) { head = month(p.date); list.appendChild(el('h2', '', head)); ol = el('ol'); list.appendChild(ol); }
-      var li = el('li'), t = el('time', '', day(p.date)), box = el('div');
-      t.setAttribute('datetime', p.date);
-      box.appendChild(el('p', 't', p.title));
-      if (p.author) box.appendChild(el('p', 'a', p.author));
-      if (p.collection || p.year) { var f = el('p', 'f'); if (p.collection) { f.append('from '); f.appendChild(el('i', '', p.collection)); } if (p.year) f.append((p.collection ? ' \u00b7 ' : '') + p.year); box.appendChild(f); }
-      var s = el('p', 's'), a = el('a'), own = typeof p.url === 'string' && /^https:\/\//.test(p.url);
-      a.textContent = own ? 'Read it at ' + (p.source || 'its source') : p.collection ? 'Find the book in a library' : p.author ? 'Find ' + p.author + ' in a library' : 'Find it in a library';
-      a.href = own ? p.url : library(p); a.target = '_blank'; a.rel = 'noopener'; s.appendChild(a); box.appendChild(s);
+      var up = tonight && p.date === tonight, out = !up, ext = own(p);
+      var li = el('li', up ? 'now' : ''), t = el('time', '', day(p.date)), box = el('div'), h = el('p', 't'), a = el('a');
+      t.setAttribute('datetime', p.date); t.setAttribute('aria-label', longDay(p.date));
+      // the title is the link; its last word is kept with the arrow so the arrow never wraps alone
+      var title = str(p.title), cut = title.lastIndexOf(' ');
+      if (out) {
+        a.appendChild(document.createTextNode(cut > 0 ? title.slice(0, cut + 1) : ''));
+        var nb = el('span', 'nb', cut > 0 ? title.slice(cut + 1) : title); nb.appendChild(arrow()); a.appendChild(nb);
+        a.appendChild(el('span', 'vh', ' (opens in a new tab)'));
+        a.href = ext ? p.url : library(p); a.target = '_blank'; a.rel = 'noopener';
+      } else { a.textContent = title; a.href = 'index.html'; }
+      var wid = 'w' + i; a.setAttribute('aria-describedby', wid);
+      h.appendChild(a); box.appendChild(h);
+      if (p.author) box.appendChild(el('p', 'a', str(p.author)));
+      if (p.collection || p.year) { var f = el('p', 'f'); if (p.collection) { f.append('from '); f.appendChild(el('i', '', str(p.collection))); } if (p.year) f.append((p.collection ? ' · ' : '') + str(p.year)); box.appendChild(f); }
+      var w = el('p', 'w', up ? 'up now' : ext ? 'read it at ' + (str(p.source) || 'its source') : p.collection ? 'find the book in a library' : p.author ? 'find ' + str(p.author) + ' in a library' : 'find it in a library');
+      w.id = wid; box.appendChild(w);
       li.appendChild(t); li.appendChild(box); ol.appendChild(li);
     });
   });
