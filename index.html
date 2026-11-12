@@ -60,8 +60,13 @@ button:focus-visible { outline: 2px solid var(--oak); outline-offset: 2px; }
 .callout-lines.off { display: none; }
 /* moonlit pass: the lamp's warmth in the reading view (multiply, so ink and paper darken together) */
 #lampWash { position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: 0; mix-blend-mode: multiply;
-  background: radial-gradient(farthest-corner at var(--lx, 0%) var(--ly, 0%), rgb(255,254,251) 0%, rgb(254,249,241) 40%, rgb(247,237,222) 80%, rgb(238,225,205) 100%); }
-#lampWash::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 75% at 50% 48%, rgba(255,255,255,0) 60%, rgb(206,196,184) 100%); mix-blend-mode: multiply; }
+  background: radial-gradient(farthest-corner at var(--lx, 0%) var(--ly, 0%), rgb(255,255,253) 0%, rgb(254,252,248) 40%, rgb(251,246,238) 80%, rgb(245,239,229) 100%); }   /* whiter paper: a lighter, less yellow wash (was 255/254/251 to 238/225/205) */
+#lampWash::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 75% at 50% 48%, rgba(255,255,255,0) 70%, rgb(214,205,194) 100%); mix-blend-mode: multiply; }   /* polish pass: the vignette starts further out and stops lighter (was 60%, 206/196/184), off the text's last lines */
+/* polish pass: the dark band along the stage's foot is there for the room's link and hint; in the viewer's reading view it only dimmed the poem's last lines */
+.stage::after { transition: opacity .6s; }
+.viewer .stage.reading::after { opacity: 0; }
+#xfade { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; display: none; will-change: opacity, transform; }
+.textmode #xfade { display: none !important; }
 .textmode #lampWash { display: none; }
 .readlink { position: absolute; left: 14px; bottom: 12px; padding: 3px 0; border-radius: 0; background: none; font-size: 0.86rem; font-weight: 500;
   color: rgba(236,236,230,0.92); border-bottom: 1px solid rgba(236,236,230,0.4); text-shadow: 0 1px 3px rgba(0,0,0,0.7); z-index: 2; }
@@ -487,7 +492,7 @@ async function buildRoom(DUST) {
     calloutDelay: 1800, calloutHold: 4500,   // touch screens: the AUTHOR / FROM pills fade in this long after the room settles, for this long
     readWarm: 1,                 // the lamp's warm falloff and vignette in the reading view (0 turns it off)
     // third pass: the lamp reads as lit from the high room view, which sees only the shade's outside
-    shadeGlow: 0.16, shadeGlowCol: 0xffa35a, shadeFall: 2.2,   // warm light through the shade itself, as if thin enamel caught the spill: strongest at the lower rim, falling off as (1 - height) ^ shadeFall toward the top
+    shadeGlow: 0.07, shadeGlowCol: 0xffa35a, shadeFall: 2.2,   // warm light through the shade itself, as if thin enamel caught the spill: strongest at the lower rim, falling off as (1 - height) ^ shadeFall toward the top
     bloom: 0.26, bloomSize: 4, bloomCol: 0xffd2a0, bloomDrop: 0,   // a small soft hot point at the shade's opening: strength, sprite size (in), colour, and how far below the rim it sits (in); the shade's lip hides its upper half
     wallPool: 0.07, wallPoolCol: 0xff9c52, wallPoolSize: [26, 30], wallPoolAt: [2, -9]   // a warm pool on the wall behind and below the lamp: strength, size (in), and centre relative to the point on the wall behind the shade (in, right / up); a fast falloff, so the rest of the wall stays blue-grey
   };
@@ -2327,22 +2332,36 @@ async function buildRoom(DUST) {
   {
     const V = (x, y, z) => new THREE.Vector3(x * U, z * U, -y * U);       // Blender inches -> three metres
     const brass = new THREE.MeshStandardMaterial({ color: 0x9c7340, metalness: 0.9, roughness: 0.38 }); brass.envMapIntensity = 0.8;   // antique brass
+    // Fidelity pass: in the darkened Nook the brass still reflected the bright studio environment at 0.8, which lit it to a flat pale
+    // beige. A deeper colour, a smoother surface, full metal, and far less of the environment: the lamp's own light now draws the highlights.
+    const BRASS = { color: 0xb07a2e, rough: 0.24, env: 0.3 };
+    if (MOONLIT) { brass.color.setHex(BRASS.color); brass.metalness = 1; brass.roughness = BRASS.rough; brass.envMapIntensity = BRASS.env; }
     const add = (geo, m) => { const o = new THREE.Mesh(geo, m); o.castShadow = o.receiveShadow = true; room.add(o); return o; };
     const RX0 = -28.6, RY0 = -10, RR = 5.4;                              // ring base centre and radius
     const ring = add(new THREE.TorusGeometry(RR * U, 0.34 * U, 16, 96), brass);
     ring.rotation.x = Math.PI / 2; ring.position.copy(V(RX0, RY0, 0.34));
+    if (MOONLIT) add(new THREE.CylinderGeometry((RR - 0.1) * U, (RR - 0.1) * U, 0.3 * U, 72), brass).position.copy(V(RX0, RY0, 0.15));   // fidelity pass: a weighted plate inside the ring (a thin tube ring alone would not hold a shade hanging 15 in out)
     const PX = RX0 - 1.2, PY = RY0 + RR * 0.97;                          // the pole rises from the ring's back edge
     add(new THREE.CylinderGeometry(0.42 * U, 0.42 * U, 2.2 * U, 24), brass).position.copy(V(PX, PY, 1.3));   // collar
-    const path = new THREE.CatmullRomCurve3([V(PX, PY, 0.5), V(PX, PY, 40), V(PX, PY, 55.5), V(PX + 0.6, PY - 0.3, 58.2),
+    const path0 = new THREE.CatmullRomCurve3([V(PX, PY, 0.5), V(PX, PY, 40), V(PX, PY, 55.5), V(PX + 0.6, PY - 0.3, 58.2),
       V(PX + 2.6, PY - 1.2, 59.2), V(PX + 10, PY - 4.2, 59.8), V(PX + 16.5, PY - 6.6, 60.2)], false, 'centripetal');
+    // fidelity pass: the pole as bent tube: straight up, one quarter bend of even radius, then a straight arm to the same tip (the old curve pinched at the turn)
+    const path = !MOONLIT ? path0 : (() => { const BR = 3.0, dx = 0.928, dy = -0.371, cp = new THREE.CurvePath(), top = 60.2, arc = [];
+      for (let i = 0; i <= 20; i++) { const a = i / 20 * Math.PI / 2, h = BR * (1 - Math.cos(a)); arc.push(V(PX + dx * h, PY + dy * h, top - BR + BR * Math.sin(a))); }
+      cp.add(new THREE.LineCurve3(V(PX, PY, 0.5), V(PX, PY, top - BR))); cp.add(new THREE.CatmullRomCurve3(arc)); cp.add(new THREE.LineCurve3(arc[20], V(PX + 16.5, PY - 6.6, top))); return cp; })();
     add(new THREE.TubeGeometry(path, 160, 0.3 * U, 16, false), brass);
     const tip = V(PX + 16.5, PY - 6.6, 60.2);
+    if (MOONLIT) { const fer = add(new THREE.CylinderGeometry(0.38 * U, 0.38 * U, 0.9 * U, 24), brass), d = V(0.928, -0.371, 0).normalize();   // fidelity pass: the ferrule where the arm meets the knuckle
+      fer.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d); fer.position.copy(tip).addScaledVector(d, -0.8 * U); }
     add(new THREE.SphereGeometry(0.55 * U, 20, 14), brass).position.copy(tip);                  // knuckle
-    const stem = add(new THREE.CylinderGeometry(0.28 * U, 0.4 * U, 2.6 * U, 20), brass); stem.position.copy(tip).add(V(0, 0, -1.4));
+    const stem = MOONLIT ? add(new THREE.CylinderGeometry(0.3 * U, 0.3 * U, 1.0 * U, 20), brass) : add(new THREE.CylinderGeometry(0.28 * U, 0.4 * U, 2.6 * U, 20), brass);
+    stem.position.copy(tip).add(V(0, 0, MOONLIT ? -0.5 : -1.4));
+    if (MOONLIT) add(new THREE.CylinderGeometry(0.44 * U, 0.44 * U, 0.34 * U, 24), brass).position.copy(tip).add(V(0, 0, -0.62));   // the collar above the tilt joint
     // tapered shade on a pivot at the knuckle, tipped toward the desk (2026-11-03); black outside, warm and glowing inside
-    const pivot = new THREE.Group(); pivot.position.copy(tip).add(V(0, 0, -2.6)); room.add(pivot);
+    const pivot = new THREE.Group(); pivot.position.copy(tip).add(V(0, 0, MOONLIT ? -1.1 : -2.6)); room.add(pivot);
     pivot.rotation.order = 'ZXY'; pivot.rotation.z = 30 * Math.PI / 180; pivot.rotation.x = -10 * Math.PI / 180;
-    const shade = new THREE.Group(); shade.position.y = -3.8 * U; pivot.add(shade);
+    const HEAD = 2.0;                                                    // the Nook: inches of joint and lampholder between the pivot and the shade's top
+    const shade = new THREE.Group(); shade.position.y = -(MOONLIT ? 3.8 + HEAD : 3.8) * U; pivot.add(shade);
     const sg = new THREE.CylinderGeometry(3.5 * U, 5.6 * U, 7.6 * U, 64, 1, true);
     const outerMat = new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1, side: THREE.FrontSide }); outerMat.envMapIntensity = 0.1;
     if (MOONLIT) {   // third pass: a faint warm glow through the shade, strongest at the lower rim (the cylinder's v runs 0 at the opening to 1 at the top)
@@ -2353,8 +2372,65 @@ async function buildRoom(DUST) {
     const outer = new THREE.Mesh(sg, outerMat);
     const inner = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: 0x3a2a18, emissive: 0xffb873, emissiveIntensity: 1.25, roughness: 0.9, side: THREE.BackSide }));
     outer.castShadow = true; shade.add(outer, inner);
+    if (MOONLIT) {
+      // The head, as a real lamp is put together (after Maxx's reference of a brass lampholder). The arm's stem ends in a tilt
+      // joint with a thumbwheel; below it, and tilting with the shade: a threaded nipple, the lampholder's domed cap with its
+      // grub screw, the body, and the knurled shade ring that clamps the shade's top plate against the holder's shoulder.
+      // Inside the shade: the ring's flange, the threaded skirt, the insulator, and the bulb's neck. The shade has a closed top
+      // (it used to be an open tube around a bare stem, held by nothing) and rolled rims.
+      const part = (geo, m, y, par) => { const o = new THREE.Mesh(geo, m); o.position.y = y * U; o.castShadow = true; (par || pivot).add(o); return o; };
+      const cylY = (r0, r1, h, seg) => new THREE.CylinderGeometry(r0 * U, r1 * U, h * U, seg || 32);
+      const lathe = pts => new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r * U, y * U)), 40);
+      const kc = document.createElement('canvas'); kc.width = kc.height = 32; { const g = kc.getContext('2d'); g.fillStyle = '#777'; g.fillRect(0, 0, 32, 32); g.strokeStyle = '#fff'; g.lineWidth = 3;
+        [[0, 0, 32, 32], [-32, 0, 0, 32], [32, 0, 64, 32], [32, 0, 0, 32], [0, 0, -32, 32], [64, 0, 32, 32]].forEach(([a, b, c, d]) => { g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }); }
+      const kt = new THREE.CanvasTexture(kc); kt.wrapS = kt.wrapT = THREE.RepeatWrapping; kt.repeat.set(30, 2);
+      const knurl = brass.clone(); knurl.bumpMap = kt; knurl.bumpScale = 0.0006; knurl.roughness = 0.5; knurl.envMapIntensity = 0.8;   // diamond knurling
+      const insul = new THREE.MeshStandardMaterial({ color: 0x8c7b66, roughness: 0.9 }); insul.envMapIntensity = 0.1;
+      // the tilt joint, across the pivot
+      const barrel = part(cylY(0.4, 0.4, 0.8, 28), brass, 0); barrel.rotation.x = Math.PI / 2;
+      // the fork that grips the barrel: two cheeks hanging from the stem's collar (they stay upright; only the barrel turns between them)
+      const yoke = new THREE.Group(); yoke.position.copy(pivot.position); yoke.rotation.x = pivot.rotation.x; room.add(yoke);
+      [0.47, -0.47].forEach(z => { const c = new THREE.Mesh(new THREE.BoxGeometry(0.72 * U, 1.0 * U, 0.12 * U), brass); c.position.set(0, 0.1 * U, z * U); c.castShadow = true; yoke.add(c); });
+      const wheel = part(cylY(0.46, 0.46, 0.18, 40), [knurl, brass, brass], 0); wheel.rotation.x = Math.PI / 2; wheel.position.z = 0.63 * U;       // the thumbwheel that locks the tilt
+      const nut = part(cylY(0.3, 0.3, 0.14, 6), brass, 0); nut.rotation.x = Math.PI / 2; nut.position.z = -0.6 * U;
+      // nipple, cap, body, shade ring: outside, above the shade's top plate (at y = -HEAD)
+      part(cylY(0.2, 0.2, 0.5), brass, -0.55);
+      part(lathe([[0.2, -0.72], [0.32, -0.74], [0.5, -0.82], [0.66, -0.96], [0.75, -1.12], [0.78, -1.3]]), brass, 0);            // the domed cap
+      const grub = part(cylY(0.06, 0.06, 0.2, 10), brass, -0.95); grub.rotation.z = Math.PI / 2; grub.position.x = 0.62 * U;      // the cap's grub screw
+      part(cylY(0.78, 0.78, 0.42), brass, -1.51);                                                                                 // the body
+      part(cylY(0.8, 0.8, 0.04), insul, -1.3).material = brass;                                                                   // the seam where the cap unscrews
+      part(cylY(0.92, 0.92, 0.26, 48), [knurl, brass, brass], -HEAD + 0.15);                                                                      // the knurled shade ring, seated on the plate
+      // the shade's top plate (black above, the warm lining below) and rolled rims
+      const plateUp = new THREE.Mesh(new THREE.RingGeometry(0.74 * U, 3.5 * U, 64), new THREE.MeshStandardMaterial({ color: 0x080808, roughness: 1 })); plateUp.material.envMapIntensity = 0.1;
+      plateUp.rotation.x = -Math.PI / 2; plateUp.position.y = 3.8 * U; plateUp.castShadow = true; shade.add(plateUp);
+      const plateDn = new THREE.Mesh(new THREE.RingGeometry(0.74 * U, 3.5 * U, 64), new THREE.MeshStandardMaterial({ color: 0x3a2a18, emissive: 0xffb873, emissiveIntensity: 1.05, roughness: 0.9 })); plateDn.rotation.x = Math.PI / 2; plateDn.position.y = 3.79 * U; shade.add(plateDn);
+      [[3.5, 3.8, 0.07], [5.6, -3.8, 0.08]].forEach(([r, y, t]) => { const rim = new THREE.Mesh(new THREE.TorusGeometry(r * U, t * U, 8, 72), plateUp.material); rim.rotation.x = Math.PI / 2; rim.position.y = y * U; shade.add(rim); });
+      // inside the shade: the ring's flange, the threaded skirt, the insulator, the bulb's neck
+      part(cylY(1.12, 1.12, 0.1, 40), brass, -HEAD - 0.06);
+      const thr = []; for (let i = 0; i <= 26; i++) thr.push([i % 2 ? 0.68 : 0.73, -HEAD - 0.12 - i * 0.03]);
+      part(lathe(thr), brass, 0);
+      part(cylY(0.6, 0.6, 0.12), insul, -HEAD - 0.96);
+      const neck = new THREE.Mesh(cylY(0.5, 0.95, 1.5, 24), new THREE.MeshBasicMaterial({ color: 0xffe9c4 })); neck.material.color.multiplyScalar(1.8); neck.position.y = 2.0 * U; shade.add(neck);
+      // Fidelity pass (2026-11-12). The shade: painted metal with a slight sheen, not a matte silhouette. An opaque shade cannot
+      // glow through, so the warm tone low on its outside is cut to the bounce a lit desk would give it (ML.shadeGlow).
+      outerMat.color.setHex(0x0c0c0d); outerMat.roughness = 0.5; outerMat.envMapIntensity = 0.12; plateUp.material.roughness = 0.5; plateUp.material.envMapIntensity = 0.12;
+      // the lining: brightest by the bulb, falling toward the rim (it was one flat value, which blew out to a white disc from below)
+      { const lc = document.createElement('canvas'); lc.width = 4; lc.height = 64; const g = lc.getContext('2d');
+        for (let i = 0; i < 64; i++) { const v = Math.round(255 * (0.38 + 0.62 * Math.pow(1 - (i + 0.5) / 64, 1.6))); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(0, i, 4, 1); }   // canvas top is the shade's top
+        inner.material.emissiveMap = new THREE.CanvasTexture(lc); inner.material.emissiveIntensity = 1.05; }
+      // the flex: out of a grommet under the arm, round the joint in a slack loop, and into a cord grip on the lampholder's cap
+      { pivot.updateMatrix(); const inv = pivot.matrix.clone().invert(), loc = v => v.applyMatrix4(inv), L = (x, y, z) => new THREE.Vector3(x * U, y * U, z * U);
+        const aR = tip.clone().add(V(-0.928 * 2.3, 0.371 * 2.3, -0.3)), E = L(-0.66, -0.9, 0);
+        const cordM = new THREE.MeshStandardMaterial({ color: 0x1b1815, roughness: 1 }); cordM.envMapIntensity = 0.05;
+        const cp = new THREE.CatmullRomCurve3([loc(aR.clone()), loc(aR.clone().add(V(-0.15, 0, -1.0))), loc(aR.clone().add(V(0.5, 0.1, -1.9))), E.clone().add(L(-0.75, 0.25, 0.05)), E], false, 'centripetal');
+        const cord = new THREE.Mesh(new THREE.TubeGeometry(cp, 48, 0.085 * U, 8, false), cordM); cord.castShadow = true; pivot.add(cord);
+        const grip = part(cylY(0.15, 0.13, 0.3, 14), brass, -0.88); grip.rotation.z = Math.PI / 2 + 0.3; grip.position.x = -0.6 * U;                 // the cord grip on the cap
+        const grom = new THREE.Mesh(new THREE.TorusGeometry(0.13 * U, 0.05 * U, 8, 16), cordM); grom.position.copy(aR); grom.rotation.x = Math.PI / 2; room.add(grom);   // the grommet under the arm
+        const rock = new THREE.Mesh(new THREE.BoxGeometry(0.34 * U, 0.2 * U, 0.14 * U), cordM); rock.position.set(0.1 * U, -1.5 * U, 0.8 * U); rock.rotation.x = 0.18; pivot.add(rock); }   // the rocker switch on the holder's body
+    }
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(1.1 * U, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }));
     bulb.position.y = 0.6 * U; shade.add(bulb);
+    if (MOONLIT) { bulb.material.color.multiplyScalar(2.6); bulb.scale.y = 1.12; }   // fidelity pass: the frosted globe is the brightest thing in the shade (it drew as a grey disc against the lining)
     // the lamp's light: a tight warm cone along the shade's axis, laying a defined pool on the desk beside the folder
     const lampLight = MOONLIT ? new THREE.SpotLight(0xffbd74, 12, ML.lampRange, ML.lampCone * Math.PI / 180, ML.lampPenumbra, ML.lampDecay)   // moonlit pass: tighter, with falloff
                               : new THREE.SpotLight(0xffbd74, 12, 3.6, 37 * Math.PI / 180, 0.62, 1.25);   // wider and warmer: the whole desk and the wall behind it
@@ -2460,7 +2536,7 @@ async function buildRoom(DUST) {
       g.add(body, cone, lead, end, eraser); }
     // reading glasses, folded, set down lenses-up beside the envelope (v73): the lower rims rest on the desk and the
     // folded temples behind them prop the top of the frame up about 23 degrees
-    { const g = new THREE.Group(); g.position.copy(P3(16.6, -18.2, DESK + 0.33)); g.rotation.set(-Math.PI / 2 + 0.405, 0.42, 0, 'YXZ'); room.add(g);
+    { const g = new THREE.Group(); g.position.copy(P3(16.6, -18.2, DESK + 0.33)); g.rotation.set(-Math.PI / 2 + 0.405, 0.42, 0, 'YXZ'); if (!MOONLIT) room.add(g);   // 2026-11-12: Maxx took the glasses off the Nook's desk
       const lens = new THREE.MeshStandardMaterial({ color: 0xdfe6ea, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.18 });
       [-1.12, 1.12].forEach(x => { const rim = new THREE.Mesh(new THREE.TorusGeometry(0.92 * U, 0.07 * U, 8, 40), darkBrass); rim.position.x = x * U; rim.scale.y = 0.82; rim.castShadow = true;
         const l = new THREE.Mesh(new THREE.CircleGeometry(0.9 * U, 32), lens); l.position.x = x * U; l.scale.y = 0.82; g.add(rim, l);
@@ -2537,7 +2613,12 @@ async function buildRoom(DUST) {
     }
     // ---- 3. imperfect placement: the lamp's cable runs across the floor to a socket on the wall ----
     { const cable = grey(0.06, 0.5);
-      const pts = [[-29.9, -4.9, 0.6], [-30.8, -7.6, 0.25], [-33.4, -8.4, 0.25], [-34.6, -5.0, 0.25], [-33.2, -1.4, 0.25], [-31.6, -0.45, 2.5], [-31.0, -0.4, 9.5], [-30.4, -0.55, 11.4]];
+      // The old run crossed the lamp's base (through the plate and the rim) and climbed the wall inside the skirting board (whose face is
+      // 0.6 in out from the wall). The Nook's cord now leaves the back of the pole's collar above the rim, drops to the floor behind the
+      // base, lies in a slack curve in the gap between base and wall, and climbs the face of the skirting to the plug.
+      const pts = MOONLIT ? [[-29.8, -4.3, 1.05], [-29.95, -3.95, 0.8], [-30.5, -3.45, 0.16], [-31.9, -3.1, 0.14], [-33.5, -2.7, 0.14], [-34.0, -1.9, 0.14], [-33.2, -1.2, 0.14], [-32.2, -0.95, 0.2],
+                             [-31.7, -0.78, 1.2], [-31.3, -0.76, 3.6], [-30.8, -0.74, 7.6], [-30.45, -0.72, 10.2], [-30.4, -0.7, 10.8]]
+                          : [[-29.9, -4.9, 0.6], [-30.8, -7.6, 0.25], [-33.4, -8.4, 0.25], [-34.6, -5.0, 0.25], [-33.2, -1.4, 0.25], [-31.6, -0.45, 2.5], [-31.0, -0.4, 9.5], [-30.4, -0.55, 11.4]];
       mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts.map(p => P3(...p))), 120, 0.13 * U, 8, false), cable);
       const plate = mesh(new THREE.BoxGeometry(2.8 * U, 4.4 * U, 0.3 * U), G.trim); plate.position.copy(P3(-30.4, -0.15, 12.2));
       const plug = mesh(new THREE.BoxGeometry(1.1 * U, 1.3 * U, 0.9 * U), cable); plug.position.copy(P3(-30.4, -0.6, 11.4)); }
@@ -2752,12 +2833,263 @@ async function buildRoom(DUST) {
     const gust = Math.pow(Math.max(0, Math.sin(t * 0.31) * Math.sin(t * 0.173 + 1.1)), 6);
     SHEET_LIFT.value = sheetL <= MIN_L + 0.5 ? gust * 0.0018 : 0; });
 
+  // ---------- the Nook's sheet: sharp ink and a paper of its own for each poem (2026-11-12) ----------
+  // Why the type read grey and soft: the sheet was one 150 ppi texture, and the reading view shows 14.2 in of it across the
+  // frame, so at device pixel ratio 2 on a 1440-wide window each texel was stretched over 1.36 device pixels (0.74 texels per
+  // pixel): every stroke edge became a bilinear ramp and the hairlines never reached full ink. The ink itself (#1d1a16) lit
+  // to RGB 29/23/15 on paper at 218/204/181: 11.3:1. Now the sheet is two textures mixed in the shader by covered area: the
+  // paper (tone and imperfections, RGBA at the old 150 ppi) and the ink alone (one byte per texel) at the density the
+  // reading view needs. In the reading view the ink samples the sharper mip; in the room it keeps its mipmaps
+  // and anisotropy, so the far view does not shimmer. SHEET_CHANGES.md has the measurements.
+  const INK = {
+    color: '#080706',          // the ink: a warm near-black (was #1d1a16); the lamp's sheen on the paper keeps it off true black
+    paper: '#fbfaf6',          // (whiter paper: was #f4efe4, which the warm lamp lit to a cream 218/204/181) the paper's base tone (was #f1ece1): a shade brighter, same warmth, for the contrast under the reading view's dimmed lamp
+    authorCov: 0.9,            // the author line as a share of the ink (by area, in linear light): the old #5a5249 on this paper
+    texelsPerPx: 1.6,          // ink texels wanted per device pixel in the reading view, at the largest frame this screen allows
+    maxMP: LOW_GPU ? 5 : 14,   // the ink texture's budget in megapixels (one byte each, a third more for mips); LOW_GPU: phones need ~120 ppi anyway
+    lodBias: -0.6              // the reading view samples about half a mip sharper (eased to 0 toward the room view)
+  };
+  // The paper's imperfections: drawn once per poem, from a seed hashed from the poem (title, author, and date or first line),
+  // so every viewer sees the same sheet, it never changes between frames or reloads, and it changes with the poem.
+  // ?sheet=<any text> reseeds them, to preview other sheets. Each poem gets the tooth and tone, plus one to three of the rest.
+  const SHEET = {
+    strength: 2.6,   // (polish pass: was 1, which the lamp and tone mapping flattened to nothing) everything below, together; 0 draws the clean sheet (no imperfections) and skips the relief
+    tooth: 0.4,      // (second polish: was 1; at this overall strength the tooth read as mottle) faint paper tooth and a few fibres, all over (tone, and a trace of relief)
+    tone: 0.6,       // (second polish: was 1) slightly uneven tone: broad soft patches a percent or two apart, the edges a shade darker
+    fold: 0.8,       // (second polish: was 1) a soft fold line, or two (once folded in half or in thirds), with a faint ridge
+    corner: 4,       // (polish pass: was 1) a softened or gently dog-eared corner at the top (inside the margin)
+    foxing: 0,       // (second polish: off; the repertoire is the fold, the corner and the pencil mark) a few small pale foxing specks, in the margins only
+    handling: 0,     // (second polish: off) a faint handling smudge along a side edge, clear of the text
+    ink: 0,          // (second polish: off) ink unevenness: a touch of spread on some lines, or slightly lighter coverage in soft patches
+    most: 2,         // (second polish) at most this many of the kinds below the tone on one sheet; most nights it is one
+    pencil: 1,       // a small pencil tick or bracket in the left margin (no words)
+    relief: 1        // the fold, the corner's crease and the tooth also lift the surface for the lamp (WebGL2; free: no extra texture reads)
+  };
+  const INK_U = { map: { value: null }, col: { value: new THREE.Color() }, bias: { value: 0 }, relief: { value: 0 } };
+  const inkCanvas = document.createElement('canvas');
+  let inkTex = null;
+  if (MOONLIT) {
+    const base = sheetMat.onBeforeCompile;
+    sheetMat.onBeforeCompile = sh => { base(sh);
+      Object.assign(sh.uniforms, { uInk: INK_U.map, uInkCol: INK_U.col, uInkBias: INK_U.bias, uRelief: INK_U.relief });
+      sh.fragmentShader = 'uniform sampler2D uInk; uniform vec3 uInkCol; uniform float uInkBias; uniform float uRelief;\n' + sh.fragmentShader
+        .replace('#include <map_fragment>', [
+          '  vec4 paperT = texture2D( map, vUv );                              // the paper, linear (sRGB decoded)',
+          '  float inkC = texture2D( uInk, vUv, uInkBias ).r;                  // the ink, as coverage',
+          '  diffuseColor.rgb *= mix( paperT.rgb, uInkCol, inkC );             // ink over paper by covered area, in linear light'].join('\n'))
+        .replace('#include <normal_fragment_maps>', ['#include <normal_fragment_maps>',
+          '#ifdef SHEET_RELIEF',
+          '  { float hR = paperT.a * uRelief;                                  // height in the paper\'s alpha (metres per unit): bump from its screen derivatives',
+          '    vec2 dH = vec2( dFdx( hR ), dFdy( hR ) );',
+          '    vec3 sx = dFdx( - vViewPosition ), sy = dFdy( - vViewPosition ), R1 = cross( sy, normal ), R2 = cross( normal, sx );',
+          '    float fDet = dot( sx, R1 ) * faceDirection;',
+          '    normal = normalize( abs( fDet ) * normal - sign( fDet ) * ( dH.x * R1 + dH.y * R2 ) ); }',
+          '#endif'].join('\n'));
+    };
+    PRE_RENDER.push(() => { INK_U.bias.value = INK.lodBias * (1 - roomness(0.006, 0.03)); });
+  }
+  function hashStr(t) { let h = 0x811c9dc5; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
+  function sheetRand(seed) { let a = seed >>> 0; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  // the ink's density: what the reading view needs at the largest frame this screen allows (the 70-degree cap on a tall frame
+  // included), within the budget and the texture-size limit, and never below the paper's
+  function inkPpiFor(L, paperPpi) {
+    const el = renderer.domElement, pr = renderer.getPixelRatio();
+    const w = Math.max(el.clientWidth || 0, screen.width || 0), h = Math.max(el.clientHeight || 0, screen.height || 0) || 1;
+    const spanIn = Math.min(2 * READ_D * Math.tan(HFOV_READ / 2), 2 * READ_D * Math.tan(35 * Math.PI / 180) * w / h) / U;
+    const need = INK.texelsPerPx * w * pr / spanIn;
+    const maxTex = Math.min(renderer.capabilities.maxTextureSize, 8192);
+    const cap = Math.min(Math.sqrt(INK.maxMP * 1e6 / (SHEET_W * L)), maxTex / L, maxTex / SHEET_W);
+    return Math.floor(Math.max(paperPpi, Math.min(need, cap)));
+  }
 
+  function drawSheetNook(p, lay) {
+    const maxTex = Math.min(renderer.capabilities.maxTextureSize, 8192);
+    const ppi = Math.max(60, Math.min(150, Math.floor(maxTex / lay.L)));          // the paper, as before
+    const W = Math.round(SHEET_W * ppi), H = Math.round(lay.L * ppi), px = v => v * ppi;
+    const ippi = inkPpiFor(lay.L, ppi), IW = Math.round(SHEET_W * ippi), IH = Math.round(lay.L * ippi), ipx = v => v * ippi;
+    const qs = new URLSearchParams(location.search).get('sheet');
+    const key = qs !== null ? 'sheet:' + qs : [p.title, p.author, p.date || (p.lines || []).find(l => l.trim()) || ''].join('|');
+    const seed = hashStr(key), sub = name => sheetRand(seed ^ hashStr(name));
+    const K = Math.max(0, SHEET.strength), on = SHEET.strength > 0;
+    // the text block, in inches, as drawSheet places it, so that nothing but the tooth, tone, folds and ink crosses it
+    const em = lay.em, lh = em * LEAD;
+    const block = em * 3.6 + lay.lines.length * lh, drop = Math.max(0, Math.min(lay.L * 0.27 - MARG, lay.L - 2 * MARG - block));
+    const mg = document.createElement('canvas').getContext('2d'); mg.font = `500 ${em * 100}px "EB Garamond"`;
+    const textR = MARG + Math.max(...lay.lines.map(l => l.i + mg.measureText(l.t).width / 100), 0);
+    const box = { x0: MARG - 0.12, x1: textR + 0.12, y0: MARG + drop - 0.1, y1: MARG + drop + block + 0.1 };
+    const inBox = (x, y, pad = 0) => x > box.x0 - pad && x < box.x1 + pad && y > box.y0 - pad && y < box.y1 + pad;
+    const baselines = []; { let y = MARG + drop + em * 1.1 + em * 1.1 + em * 1.3 + lh * 0.4; lay.lines.forEach(l => { baselines.push({ y, l }); y += lh; }); }
+
+    // which imperfections this sheet has: the rolls come first and in a fixed order, so a knob set to 0 changes nothing else
+    const roll = sub('picks'), R = { fold: roll(), corner: roll(), foxing: roll(), handling: roll(), ink: roll(), pencil: roll() };
+    const P = { fold: 0.55, corner: 0.4, foxing: 0.3, handling: 0.3, ink: 0.5, pencil: 0.22 };
+    let extra = Object.keys(P).filter(k => R[k] < P[k] && SHEET[k] > 0).sort((a, b) => R[a] / P[a] - R[b] / P[b]).slice(0, SHEET.most);   // at most SHEET.most, from the kinds that are on
+    if (!extra.length) extra = ['fold'];
+    const picks = on ? ['tooth', 'tone', ...extra].filter(k => SHEET[k] > 0) : [];
+    const has = k => picks.includes(k);
+
+    // ---- the paper (RGBA, 150 ppi): the old fill and specks, then the imperfections; relief goes in its alpha
+    pageCanvas.width = W; pageCanvas.height = H;
+    const g = pageCanvas.getContext('2d');
+    g.fillStyle = INK.paper; g.fillRect(0, 0, W, H);
+    const rs = on ? sub('specks') : Math.random;                                     // seeded once there are imperfections
+    for (let i = 0, n = Math.round(W * H / 1100); i < n; i++) { g.fillStyle = `rgba(120,100,70,${rs() * 0.03})`; g.fillRect(rs() * W, rs() * H, 1 + rs() * 2, 1); }
+    const relief = on && SHEET.relief > 0 && renderer.capabilities.isWebGL2 ? document.createElement('canvas') : null;
+    const rg = relief ? (relief.width = W, relief.height = H, relief.getContext('2d')) : null;
+    if (rg) { rg.fillStyle = 'rgb(128,128,128)'; rg.fillRect(0, 0, W, H); }
+    const rad = (ctx, x, y, r0, stops) => { const gr = ctx.createRadialGradient(x, y, 0, x, y, r0); stops.forEach(([o, c]) => gr.addColorStop(o, c)); ctx.fillStyle = gr; ctx.fillRect(x - r0, y - r0, 2 * r0, 2 * r0); };
+
+    if (has('tone')) {                                                              // broad, soft unevenness, and slightly toned edges
+      const r = sub('tone'), k = K * SHEET.tone;
+      for (let i = 0; i < 5; i++) { const x = r() * W, y = r() * H, rr = px(2.5 + 4 * r()), dark = r() < 0.7, a = (0.02 + 0.025 * r()) * k;
+        rad(g, x, y, rr, dark ? [[0, `rgba(122,98,64,${a})`], [1, 'rgba(122,98,64,0)']] : [[0, `rgba(255,253,246,${a * 1.4})`], [1, 'rgba(255,253,246,0)']]); }
+      const e = px(0.35 + 0.25 * r()), ea = 0.04 * k;
+      [[0, 0, e, 0], [W, 0, W - e, 0], [0, 0, 0, e], [0, H, 0, H - e]].forEach(([x0, y0, x1, y1]) => {
+        const lg = g.createLinearGradient(x0, y0, x1, y1); lg.addColorStop(0, `rgba(128,104,70,${ea * (0.6 + 0.8 * r())})`); lg.addColorStop(1, 'rgba(128,104,70,0)');
+        g.fillStyle = lg; g.fillRect(0, 0, W, H); });
+    }
+    if (has('tooth')) {                                                             // a few fibres; the fine tooth is added per texel below
+      const r = sub('fibres'), k = K * SHEET.tooth, n = Math.round(90 * SHEET_W * lay.L / 93.5);
+      g.lineCap = 'round'; g.lineWidth = Math.max(0.6, px(0.003));
+      for (let i = 0; i < n; i++) { const x = r() * W, y = r() * H, len = px(0.04 + 0.1 * r()), a = r() * Math.PI, bend = (r() - 0.5) * len * 0.6, light = r() < 0.35;
+        g.strokeStyle = light ? `rgba(255,255,250,${0.14 * k})` : `rgba(104,88,62,${(0.05 + 0.05 * r()) * k})`;
+        g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * len / 2 - Math.sin(a) * bend, y + Math.sin(a) * len / 2 + Math.cos(a) * bend, x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke(); }
+    }
+    if (has('fold')) {                                                              // folded once in half, or in thirds; strength varies along the crease
+      const r = sub('fold'), k = K * SHEET.fold, thirds = r() < 0.55, n = thirds ? (r() < 0.6 ? 2 : 1) : 1, which = r() < 0.5 ? 1 : 2;
+      for (let f = 0; f < n; f++) {
+        const at = thirds ? (n === 2 ? (f + 1) / 3 : which / 3) : 0.5;
+        const y0 = px(lay.L * at + (r() - 0.5) * 0.18), tilt = (r() - 0.5) * 0.012, valley = r() < 0.5 ? 1 : -1;
+        const band = px(0.2), strip = document.createElement('canvas'); strip.width = W; strip.height = Math.ceil(2 * band);
+        const sg = strip.getContext('2d'), lg = sg.createLinearGradient(0, 0, 0, 2 * band), a = (0.05 + 0.025 * r()) * k;
+        const dk = o => `rgba(84,68,46,${o})`, lt = o => `rgba(255,253,248,${o})`;
+        const st = valley > 0 ? [[0, dk(0)], [0.32, dk(a * 0.35)], [0.48, dk(a)], [0.5, dk(a * 1.5)], [0.515, lt(a * 1.6)], [0.6, lt(a * 0.6)], [0.75, lt(0)], [1, lt(0)]]
+                              : [[0, lt(0)], [0.25, lt(0)], [0.4, lt(a * 0.6)], [0.485, lt(a * 1.6)], [0.5, dk(a * 1.5)], [0.52, dk(a)], [0.68, dk(a * 0.35)], [1, dk(0)]];
+        st.forEach(([o, c]) => lg.addColorStop(o, c)); sg.fillStyle = lg; sg.fillRect(0, 0, W, 2 * band);
+        const mk = sg.createLinearGradient(0, 0, W, 0); for (let j = 0; j <= 6; j++) mk.addColorStop(j / 6, `rgba(0,0,0,${0.45 + 0.55 * r()})`);
+        sg.globalCompositeOperation = 'destination-in'; sg.fillStyle = mk; sg.fillRect(0, 0, W, 2 * band);
+        g.save(); g.translate(W / 2, y0); g.rotate(tilt); g.drawImage(strip, -W / 2, -band); g.restore();
+        if (rg) { const rl = rg.createLinearGradient(0, -band, 0, band), hgt = valley > 0 ? 70 : 186;   // a narrow ridge or valley
+          [[0, 'rgba(128,128,128,0)'], [0.42, 'rgba(128,128,128,0)'], [0.5, `rgba(${hgt},${hgt},${hgt},${Math.min(1, k)})`], [0.58, 'rgba(128,128,128,0)'], [1, 'rgba(128,128,128,0)']].forEach(([o, c]) => rl.addColorStop(o, c));
+          rg.save(); rg.translate(W / 2, y0); rg.rotate(tilt); rg.fillStyle = rl; rg.fillRect(-W / 2 - 4, -band, W + 8, 2 * band); rg.restore(); }
+      }
+    }
+    if (has('corner')) {                                                            // a top corner, softened or gently dog-eared; inside the margin
+      const r = sub('corner'), k = K * SHEET.corner, right = r() < 0.65, d = px(0.35 + 0.45 * r()), cx = right ? W : 0, sx = right ? -1 : 1;
+      if (r() < 0.6) {                                                              // dog-ear: a crease across the corner, the tip turned a shade
+        const d2 = d * (0.85 + 0.3 * r()), a = (0.08 + 0.05 * r()) * k;
+        g.save(); g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx + sx * d, 0); g.lineTo(cx, d2); g.closePath(); g.clip();
+        const lg = g.createLinearGradient(cx + sx * d * 0.5, d2 * 0.5, cx, 0); lg.addColorStop(0, `rgba(96,80,58,${a})`); lg.addColorStop(1, `rgba(96,80,58,${a * 0.4})`);
+        g.fillStyle = lg; g.fillRect(0, 0, W, H); g.restore();
+        g.lineWidth = Math.max(0.8, px(0.005)); g.strokeStyle = `rgba(84,68,48,${0.15 * k})`; g.beginPath(); g.moveTo(cx + sx * d, 0); g.quadraticCurveTo(cx + sx * d * 0.45, d2 * 0.45, cx, d2); g.stroke();
+        g.strokeStyle = `rgba(255,253,248,${0.16 * k})`; g.beginPath(); g.moveTo(cx + sx * (d + 2), 0); g.quadraticCurveTo(cx + sx * (d * 0.45 + 2), d2 * 0.45 + 2, cx, d2 + 2); g.stroke();
+        if (rg) { rg.lineWidth = px(0.03); rg.strokeStyle = `rgba(196,196,196,${Math.min(1, k)})`; rg.beginPath(); rg.moveTo(cx + sx * d, 0); rg.quadraticCurveTo(cx + sx * d * 0.45, d2 * 0.45, cx, d2); rg.stroke(); }
+      } else {                                                                      // worn soft: the tip a little greyed and fuzzy
+        rad(g, cx, 0, d * 0.7, [[0, `rgba(110,98,84,${0.12 * k})`], [1, 'rgba(110,98,84,0)']]);
+      }
+    }
+    if (has('foxing')) {                                                            // a few small pale specks, together, in a margin
+      const r = sub('foxing'), k = K * SHEET.foxing;
+      let fx = 0, fy = 0;
+      for (let t = 0; t < 40; t++) { fx = 0.25 + r() * (SHEET_W - 0.5); fy = 0.3 + r() * (Math.min(lay.L, MIN_L) - 0.6); if (!inBox(fx, fy, 0.3)) break; }
+      const n = 2 + Math.floor(r() * 4);
+      for (let i = 0; i < n; i++) { const x = fx + (r() - 0.5) * 0.5, y = fy + (r() - 0.5) * 0.5; if (inBox(x, y, 0.1) || x < 0.05 || x > SHEET_W - 0.05) continue;
+        const rr = px(0.012 + 0.03 * r()), a = (0.12 + 0.12 * r()) * k;
+        rad(g, px(x), px(y), rr * 2.2, [[0, `rgba(158,110,62,${a})`], [0.4, `rgba(166,120,72,${a * 0.6})`], [1, 'rgba(170,126,80,0)']]); }
+    }
+    if (has('handling')) {                                                          // a faint thumb's worth of handling along a side edge
+      const r = sub('handling'), k = K * SHEET.handling, left = textR > SHEET_W - 0.9 ? true : r() < 0.5;
+      const y = 1.2 + r() * (Math.min(lay.L, MIN_L) - 2.4), x = left ? 0.18 + 0.12 * r() : SHEET_W - 0.18 - 0.12 * r();
+      g.save(); g.translate(px(x), px(y)); g.rotate((r() - 0.5) * 0.5); g.scale(0.32, 1);
+      rad(g, 0, 0, px(0.85 + 0.4 * r()), [[0, `rgba(92,82,72,${(0.04 + 0.02 * r()) * k})`], [0.6, `rgba(92,82,72,${0.02 * k})`], [1, 'rgba(92,82,72,0)']]); g.restore();
+    }
+    if (has('pencil')) {                                                            // a small pencil tick or bracket beside a line, in the left margin
+      const r = sub('pencil'), k = K * SHEET.pencil, body = baselines.filter(b => b.l.t.trim() && b.l.i === 0);
+      if (body.length) {
+        const i0 = Math.floor(r() * body.length), x = MARG - 0.26 - 0.08 * r();
+        g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = Math.max(1, px(0.011)); g.strokeStyle = `rgba(74,72,70,${0.34 * k})`;
+        const j = () => (r() - 0.5) * px(0.008);
+        if (r() < 0.5) {                                                            // a bracket over two to four lines
+          const n = Math.min(body.length - i0, 2 + Math.floor(r() * 3)), yA = body[i0].y - em * 0.75, yB = body[i0 + n - 1].y + em * 0.2, tick = 0.06;
+          for (let pass = 0; pass < 2; pass++) { g.beginPath(); g.moveTo(px(x + tick) + j(), px(yA) + j()); g.lineTo(px(x) + j(), px(yA) + j());
+            g.quadraticCurveTo(px(x - 0.012) + j(), px((yA + yB) / 2), px(x) + j(), px(yB) + j()); g.lineTo(px(x + tick) + j(), px(yB) + j()); g.stroke(); g.strokeStyle = `rgba(74,72,70,${0.14 * k})`; }
+        } else {                                                                    // a small tick
+          const y = body[i0].y - em * 0.3;
+          for (let pass = 0; pass < 2; pass++) { g.beginPath(); g.moveTo(px(x - 0.07) + j(), px(y - 0.02) + j()); g.lineTo(px(x - 0.03) + j(), px(y + 0.04) + j()); g.lineTo(px(x + 0.06) + j(), px(y - 0.08) + j()); g.stroke(); g.strokeStyle = `rgba(74,72,70,${0.14 * k})`; }
+        }
+      }
+    }
+    if (has('tooth') || rg) {                                                       // the fine tooth (per texel), and the relief into alpha
+      const r = sub('tooth'), k = has('tooth') ? K * SHEET.tooth : 0, s0 = (r() * 4294967296) >>> 0;
+      const im = g.getImageData(0, 0, W, H), d = im.data, rd = rg ? rg.getImageData(0, 0, W, H).data : null;
+      const hsh = (x, y) => { let t = Math.imul(x, 374761393) + Math.imul(y, 668265263) ^ s0; t = Math.imul(t ^ t >>> 13, 1274126177); return ((t ^ t >>> 16) >>> 0) / 4294967296; };
+      const C = 4, cw = Math.ceil(W / C) + 2, ch = Math.ceil(H / C) + 2, cell = new Float32Array(cw * ch);
+      for (let i = 0; i < cell.length; i++) cell[i] = hsh(i % cw + 7919, (i / cw | 0) + 104729);
+      for (let y = 0; y < H; y++) { const cy = y / C, y0 = cy | 0, fy = cy - y0;
+        for (let x = 0; x < W; x++) { const cx = x / C, x0 = cx | 0, fx = cx - x0, c0 = y0 * cw + x0;
+          const lo = (cell[c0] * (1 - fx) + cell[c0 + 1] * fx) * (1 - fy) + (cell[c0 + cw] * (1 - fx) + cell[c0 + cw + 1] * fx) * fy;
+          const n = 0.55 * hsh(x, y) + 0.45 * lo - 0.5, o = (y * W + x) * 4;          // -0.5..0.5, fine tooth over a softer clump
+          if (k) { const m = 1 + n * 0.05 * k; d[o] *= m; d[o + 1] *= m; d[o + 2] *= m; }
+          if (rd) d[o + 3] = Math.max(200, Math.min(255, 235 + (rd[o] - 128) * 0.3 + n * 6 * k)); } }
+      g.putImageData(im, 0, 0);
+    }
+
+    // ---- the ink (one channel, at the reading view's density): white on black, read as coverage by the shader
+    inkCanvas.width = IW; inkCanvas.height = IH;
+    const gi = inkCanvas.getContext('2d');
+    gi.fillStyle = '#000'; gi.fillRect(0, 0, IW, IH);
+    let y = MARG + drop + em * 1.1;
+    gi.textBaseline = 'alphabetic'; gi.fillStyle = '#fff';
+    gi.font = `400 ${ipx(em * 1.3)}px "EB Garamond"`; gi.fillText(p.title, ipx(MARG), ipx(y));
+    const ac = Math.round(255 * INK.authorCov);
+    y += em * 1.1; gi.font = `italic 400 ${ipx(em * 0.82)}px "EB Garamond"`; gi.fillStyle = `rgb(${ac},${ac},${ac})`;
+    gi.fillText(p.author + (p.year ? ', ' + p.year : ''), ipx(MARG), ipx(y));
+    y += em * 1.3 + lh * 0.4; gi.fillStyle = '#fff'; gi.font = `500 ${ipx(em)}px "EB Garamond"`;
+    const inkR = has('ink') ? sub('ink') : null, spread = inkR ? inkR() < 0.6 : false, ik = K * SHEET.ink;
+    lay.lines.forEach(l => { gi.fillText(l.t, ipx(MARG + l.i), ipx(y));
+      if (spread && inkR() < 0.55) { gi.lineWidth = ipx(0.0016); gi.strokeStyle = `rgba(255,255,255,${(0.15 + 0.3 * inkR()) * ik})`; gi.strokeText(l.t, ipx(MARG + l.i), ipx(y)); }
+      y += lh; });
+    if (inkR && !spread) {                                                          // lighter coverage in a few soft patches (at most 1.4%: in linear light a little goes a long way)
+      for (let i = 0; i < 6; i++) { const x = ipx(MARG + inkR() * (textR - MARG)), yy = ipx(box.y0 + inkR() * (box.y1 - box.y0)), rr = ipx(0.5 + inkR());
+        rad(gi, x, yy, rr, [[0, `rgba(0,0,0,${(0.006 + 0.008 * inkR()) * ik})`], [1, 'rgba(0,0,0,0)']]); }
+    }
+
+    if (pageTex) pageTex.dispose();
+    pageTex = new THREE.CanvasTexture(pageCanvas);
+    pageTex.encoding = THREE.sRGBEncoding; pageTex.flipY = false; pageTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    if (inkTex) inkTex.dispose();
+    inkTex = new THREE.CanvasTexture(inkCanvas);
+    inkTex.format = renderer.capabilities.isWebGL2 ? THREE.RedFormat : THREE.LuminanceFormat;
+    inkTex.flipY = false; inkTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    // once uploaded, the canvases are let go (the GPU keeps the textures): about 4 bytes a texel of page memory each
+    pageTex.onUpdate = () => { pageCanvas.width = pageCanvas.height = 1; };
+    inkTex.onUpdate = () => { inkCanvas.width = inkCanvas.height = 1; };
+    const ih = parseInt(INK.color.slice(1), 16);
+    const lin = c => (c /= 255) <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    INK_U.map.value = inkTex; INK_U.col.value.setRGB(lin(ih >> 16 & 255), lin(ih >> 8 & 255), lin(ih & 255));   // linear: the shader mixes by area in linear light
+    INK_U.relief.value = rg ? 0.0008 * SHEET.relief * Math.min(1, K) : 0;
+    if (rg) sheetMat.defines.SHEET_RELIEF = ''; else delete sheetMat.defines.SHEET_RELIEF;
+    sheetMat.map = pageTex; sheetMat.needsUpdate = true;
+    sheetMat.userData = { inkTex, inkW: IW, inkH: IH, inkPpi: ippi, paperPpi: ppi, paperW: W, paperH: H, seed, key, picks };
+    if (/[?&]debug=1/.test(location.search)) console.log('sheet', JSON.stringify({ key, seed, picks, inkPpi: ippi, ink: [IW, IH], paper: [W, H] }));
+    sheetL = lay.L; sheetFocus = drop > 0.05 ? MARG + drop + block / 2 + 1.0 : 0;
+    document.getElementById('poemText').textContent = p.lines.join('\n');
+    document.getElementById('poemMeta').textContent = `${p.title}, ${p.author}` + (p.note ? ` · ${p.note}` : '');
+    return lay.L;
+  }
+
+
+  // Second polish: on a narrow (phone) frame the letter-size sheet is about 375 px across, which set the poem at about 11 px.
+  // There the type is set larger (TALL.em), a line too long for the measure turns over with a hanging indent instead of the
+  // whole poem shrinking, and the reading view comes in to the text column (TALL.pad in of margin showing in all).
+  const TALL = { em: 0.32, pad: 0.6 };
   function layout(p) {
     const g = document.createElement('canvas').getContext('2d'), REF = 100, TW = SHEET_W - 2 * MARG;
-    let em = EM;
+    const tallType = MOONLIT && roomTall === true;
+    let em = tallType ? TALL.em : EM;
     const widest = e => { g.font = `500 ${e * REF}px "EB Garamond"`; return Math.max(...p.lines.map(l => g.measureText(l).width)) / REF; };
-    while (em > 0.17 && widest(em) > TW) em -= 0.005;       // only an over-wide line can make the type smaller
+    while (em > (tallType ? TALL.em - 0.02 : 0.17) && widest(em) > TW) em -= 0.005;       // only an over-wide line can make the type smaller
     g.font = `500 ${em * REF}px "EB Garamond"`;
     const lines = [];
     p.lines.forEach(line => {                                // keep lines whole; wrap only below the minimum size
@@ -2773,6 +3105,7 @@ async function buildRoom(DUST) {
 
   function drawSheet(p) {
     const lay = layout(p);
+    if (MOONLIT) return drawSheetNook(p, lay);              // the Nook (2026-11-12): sharp ink, and a paper of its own for each poem
     const maxTex = Math.min(renderer.capabilities.maxTextureSize, 8192);
     const ppi = Math.max(60, Math.min(150, Math.floor(maxTex / lay.L)));
     const W = Math.round(SHEET_W * ppi), H = Math.round(lay.L * ppi), px = v => v * ppi;
@@ -3011,14 +3344,66 @@ async function buildRoom(DUST) {
   // Rain and Linen share the Nook's Window view (v38)
   const READ_D = 0.3, READ_HALF = 3.65;   // viewer: closer than the master page's 0.46 / 5.6, for the smaller frame   // camera distance (m); half the visible sheet length (in)
   let sRead = 0, sReadTo = 0;
-  const sBounds = () => { const lo = Math.min(READ_HALF, sheetL / 2), hi = Math.max(lo, sheetL - READ_HALF); return [lo, hi]; };
+  // polish pass: half the visible sheet length follows the frame's shape (the Nook). 3.65 in suited a 16:10 frame; a phone's tall
+  // frame sees 16 in of sheet, so the reading view opened on 4 in of desk above the sheet. The frame now keeps READ_TOP in of
+  // folder above the sheet's top edge at any shape.
+  const READ_TOP = 0.62;
+  const readVf = () => Math.min(70 * Math.PI / 180, 2 * Math.atan(Math.tan(HFOV_READ / 2) / camera.aspect));   // the reading view's vertical angle
+  const readD = () => MOONLIT && roomTall ? Math.min(READ_D, (SHEET_W - 2 * MARG + TALL.pad) * U / (2 * Math.tan(readVf() / 2) * camera.aspect)) : READ_D;
+  const readHalf = () => !MOONLIT ? READ_HALF : Math.max(2.4, readD() * Math.tan(Math.min(70 * Math.PI / 180, 2 * Math.atan(Math.tan(HFOV_READ / 2) / camera.aspect)) / 2) / U - READ_TOP);
+  const sBounds = () => { const h = readHalf(), lo = Math.min(h, sheetL / 2), hi = Math.max(lo, sheetL - h); return [lo, hi]; };
   // the reading view opens on the poem: a short poem's block is centred in the frame; a long poem opens at the top (2026-11-08)
   const readStart = () => { const [lo, hi] = sBounds(); return sheetFocus ? Math.min(hi, Math.max(lo, sheetFocus)) : lo; };
   function readingPose(sIn) {
     const q = sampleAt(sIn * U);
-    return { pos: q.p.clone().addScaledVector(q.n, READ_D), tgt: q.p.clone(), up: q.t.clone().negate(), par: 0.006 };
+    return { pos: q.p.clone().addScaledVector(q.n, readD()), tgt: q.p.clone(), up: q.t.clone().negate(), par: 0.006 };
   }
   let anim = null;                                          // the camera's transition between views, while S.moving
+  // Polish pass: the move to the page and back (the Nook). The old move slid the camera, its target and its up-vector along
+  // three straight lines at once in 1.1 s on a cubic ease: the view swung as it travelled, and because the distance closed
+  // evenly (3.4 m to 0.3 m) the sheet seemed to rush up over the last third, twisting upright as it arrived. Now, in order:
+  // the gaze settles on the sheet and the camera swings round to face the sheet squarely while it is still far off (so the
+  // page is already upright in the frame); then it pushes in and rises over the page along one arc, its distance closing by
+  // an even ratio (the sheet grows at an even rate), on a gentler ease and over more time. The way back is the same move reversed.
+  const MOVE = {
+    inMs: 2000,      // room to page (was 1100)
+    outMs: 1700,     // page to room
+    gaze: 0.55,      // the share of the move in which the gaze settles on the sheet (going in) or is released to the room (going out)
+    square: 0.6,     // ... and in which the camera comes round square to the sheet, so the page does not twist as it arrives
+    // Second polish: by default there is no flight at all. The room's last frame is held as a still, pushed slightly toward
+    // the folder, and dissolved into the reading view (and the reverse on the way out). The browser's compositor animates
+    // the still, so the move is smooth however slowly the room itself draws. ?move=fly brings the flight back for comparison.
+    style: (/[?&]move=(fly|dissolve)/.exec(location.search) || [])[1] || 'dissolve',
+    dissolveIn: 950, dissolveOut: 750,   // ms
+    push: 1.1,       // how far the still is enlarged toward the folder as it dissolves (1 = a plain dissolve)
+    ease: t => 0.5 - 0.5 * Math.cos(Math.PI * t)   // a sine ease: a softer start and stop, and a third less peak speed than the cubic
+  };
+  const mvV = new THREE.Vector3();
+  // Whiter paper (2026-11-12, Maxx): in the reading view the lamp over the sheet is brighter and nearer white than the room's
+  // warm lamp, so the page reads as white paper under a lamp, not cream. The room view keeps the warm lamp.
+  const WHITE = { lamp: 2.6, tint: new THREE.Color(0xfff3e2), mix: 0.85 };   // the lamp's level, colour, and how far it goes to that colour, in the reading view (was 1.8, the room's 0xffbd74, 0)
+  let lampC0 = null;
+  let xf = null, xfT = 0, lastPoem = null;
+  function xfadeSnap(name, to) {                            // hold the frame on screen as a still; false if the dissolve does not apply
+    if (!MOONLIT || MOVE.style !== 'dissolve' || anim || S.orbit || S.view === name || (name !== 'reading' && name !== 'room')) return false;
+    try {
+      const w = canvas.width, h = canvas.height; if (!w || !h) return false;
+      if (!xf) { xf = document.createElement('canvas'); xf.id = 'xfade'; xf.setAttribute('aria-hidden', 'true'); (document.getElementById('lampWash') || canvas).insertAdjacentElement('afterend', xf); }
+      if (xf.width !== w || xf.height !== h) { xf.width = w; xf.height = h; }
+      PRE_RENDER.forEach(f => f()); renderer.render(scene, camera);          // draw, then copy in the same task (the drawing buffer is not kept)
+      xf.getContext('2d').drawImage(canvas, 0, 0);
+      const into = name === 'reading', ms = into ? MOVE.dissolveIn : MOVE.dissolveOut;
+      let ox = 50, oy = 50; if (into) { mvV.copy(to.tgt).project(camera); ox = Math.min(85, Math.max(15, (mvV.x + 1) * 50)); oy = Math.min(85, Math.max(15, (1 - mvV.y) * 50)); }
+      xf.style.transition = 'none'; xf.style.transformOrigin = ox.toFixed(1) + '% ' + oy.toFixed(1) + '%'; xf.style.transform = 'scale(1)'; xf.style.opacity = '1'; xf.style.display = 'block';
+      clearTimeout(xfT);
+      requestAnimationFrame(() => requestAnimationFrame(() => {             // the new view has drawn underneath by now
+        xf.style.transition = `transform ${ms}ms cubic-bezier(.3,.1,.25,1), opacity ${Math.round(ms * 0.74)}ms ease-in-out ${Math.round(ms * 0.2)}ms`;
+        xf.style.transform = `scale(${into ? MOVE.push : 1})`; xf.style.opacity = '0';
+        xfT = setTimeout(() => { xf.style.display = 'none'; D.set({ moving: false }); }, ms + 80);
+      }));
+      return true;
+    } catch (e) { if (xf) xf.style.display = 'none'; return false; }
+  }
   const cur = { pos: ROOM.pos.clone(), tgt: ROOM.tgt.clone(), up: ROOM.up.clone(), par: ROOM.par };
   // how far the camera is from the reading view, 0 (reading) to 1 (the room), on a window of cur.par: the lamp, the light
   // cone, the dust, the callouts and the café's wide lens all ease on it
@@ -3033,10 +3418,21 @@ async function buildRoom(DUST) {
     if (name === 'reading') { sRead = sReadTo = readStart(); }
     const to = name === 'reading' ? readingPose(sRead) : (REVIEW[name] || ROOM);
     if (S.orbit) setOrbit(false);
-    const now = instant || REDUCED.matches;
-    D.set({ view: name, moving: !now });
+    const held = !instant && !REDUCED.matches && xfadeSnap(name, to);   // second polish: the push and dissolve (see MOVE.style)
+    const now = instant || REDUCED.matches || held;
+    D.set({ view: name, moving: held || !now });
     if (now) { cur.pos.copy(to.pos); cur.tgt.copy(to.tgt); cur.up.copy(to.up); cur.par = to.par; anim = null; return; }
     anim = { t0: performance.now(), dur: 1100, fp: cur.pos.clone(), ft: cur.tgt.clone(), fu: cur.up.clone(), fpar: cur.par, to };
+    if (MOONLIT && (name === 'reading' || name === 'room')) {   // polish pass: the soft move (see MOVE), described from the sheet's end
+      const into = name === 'reading', far = into ? { pos: anim.fp, tgt: anim.ft } : to, near = into ? to : { pos: anim.fp, tgt: anim.ft, up: anim.fu };
+      const oF = far.pos.clone().sub(far.tgt), oN = near.pos.clone().sub(near.tgt), dF = oF.length(), dN = oN.length();
+      if (dF > 1e-4 && dN > 1e-4) {
+        const N = oN.divideScalar(dN), a = near.up.clone().addScaledVector(N, -near.up.dot(N)).normalize().negate(), b = new THREE.Vector3().crossVectors(N, a);   // the sheet's normal, its foot-ward direction, and across
+        oF.divideScalar(dF); const h = oF.clone().addScaledVector(N, -oF.dot(N));
+        anim.soft = { into, N, a, b, dF, dN, th: Math.acos(Math.min(1, Math.max(-1, oF.dot(N)))), ph: Math.atan2(h.dot(b), h.dot(a)), tF: far.tgt.clone(), tN: near.tgt.clone() };
+        anim.dur = into ? MOVE.inMs : MOVE.outMs;
+      }
+    }
   }
   const poemOverlay = document.getElementById('poemOverlay');
   function showPoem(on) {                                   // the Vathograph: the poem is an overlay, and 'reading' means it is open
@@ -3147,7 +3543,9 @@ async function buildRoom(DUST) {
     const w = canvas.clientWidth, h = canvas.clientHeight, pr = renderer.getPixelRatio();
     if (canvas.width !== Math.floor(w * pr) || canvas.height !== Math.floor(h * pr)) {
       renderer.setSize(w, h, false); camera.aspect = w / h;
-      if (fitRoom() && S.view === 'room' && !anim && !S.orbit) { cur.pos.copy(ROOM.pos); cur.tgt.copy(ROOM.tgt); }   // the frame changed shape: the matching room view
+      const reshaped = fitRoom();
+      if (reshaped && lastPoem && path) { drawSheet(lastPoem); buildSheet(); D.set({ longPoem: sheetL > MIN_L + 0.5 }); if (S.view === 'reading') sRead = sReadTo = readStart(); }   // second polish: the sheet is set for the frame's shape
+      if (reshaped && S.view === 'room' && !anim && !S.orbit) { cur.pos.copy(ROOM.pos); cur.tgt.copy(ROOM.tgt); }   // the frame changed shape: the matching room view
       if (MOONLIT) hfov = HFOV_READ + (roomHfov() - HFOV_READ) * roomness(0.006, 0.004);
       fovFor(hfov);
     }
@@ -3302,8 +3700,16 @@ async function buildRoom(DUST) {
       PRE_RENDER.forEach(f => f()); renderer.render(scene, camera); placeCallouts(); requestAnimationFrame(tick); return;
     }
     if (anim) {
-      const k = Math.min(1, (now - anim.t0) / anim.dur), e = ease(k);
+      const k = Math.min(1, (now - anim.t0) / anim.dur), e = anim.soft ? MOVE.ease(k) : ease(k);
+      if (anim.soft) {   // polish pass: r runs 0 (far) to 1 (over the sheet); the gaze and the squaring-up lead it
+        const m = anim.soft, kk = m.into ? k : 1 - k, r = MOVE.ease(kk), rT = MOVE.ease(Math.min(1, kk / MOVE.gaze)), rA = MOVE.ease(Math.min(1, kk / MOVE.square));
+        const th = m.th * (1 - r), ph = m.ph * (1 - rA), st = Math.sin(th);
+        cur.tgt.lerpVectors(m.tF, m.tN, rT);
+        mvV.copy(m.N).multiplyScalar(Math.cos(th)).addScaledVector(m.a, st * Math.cos(ph)).addScaledVector(m.b, st * Math.sin(ph));
+        cur.pos.copy(cur.tgt).addScaledVector(mvV, m.dF * Math.pow(m.dN / m.dF, r));
+      } else {
       cur.pos.lerpVectors(anim.fp, anim.to.pos, e); cur.tgt.lerpVectors(anim.ft, anim.to.tgt, e);
+      }
       cur.up.lerpVectors(anim.fu, anim.to.up, e).normalize(); cur.par = anim.fpar + (anim.to.par - anim.fpar) * e;
       if (k >= 1) { anim = null; D.set({ moving: false }); }
     } else if (S.view === 'reading' && path) {               // follow the sheet
@@ -3318,7 +3724,8 @@ async function buildRoom(DUST) {
     if (S.orbit && controls) {
       controls.update(); PRE_RENDER.forEach(f => f()); renderer.render(scene, camera); placeCallouts(); requestAnimationFrame(tick); return;
     }
-    if (LAMP) { const t = roomness(0.006, 0.044); LAMP.intensity = LAMP_LO + (LAMP_HI - LAMP_LO) * t; }   // full in the room, low up close
+    if (LAMP) { const t = roomness(0.006, 0.044), lo = MOONLIT ? WHITE.lamp : LAMP_LO; LAMP.intensity = lo + (LAMP_HI - lo) * t;   // full in the room, low up close
+      if (MOONLIT) { if (!lampC0) lampC0 = LAMP.color.clone(); LAMP.color.copy(lampC0).lerp(WHITE.tint, (1 - t) * WHITE.mix); } }   // whiter paper: the lamp whitens as the camera comes to the page
     par.lerp(parTo, 0.06);
     camera.up.copy(cur.up);
     camera.position.copy(cur.pos); camera.lookAt(cur.tgt);
@@ -3358,6 +3765,7 @@ async function buildRoom(DUST) {
 
   // setPoem: tonight's poem into every place it shows (text view, overlay, callouts, the sheet). source: 'tonight' (poem.json) or 'baked'.
   function setPoem(p, source) {
+    lastPoem = p;
     if (window.__showText) window.__showText(p); if (VATH) fillOverlay(p); setCallouts(p); drawSheet(p); buildSheet();
     D.canRead = !!path;
     D.set({ longPoem: sheetL > MIN_L + 0.5, poem: source || 'tonight' });
