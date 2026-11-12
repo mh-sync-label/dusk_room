@@ -21,10 +21,12 @@ and takes over on its own if the 3D scene cannot run.
 - `text.html`: the poem alone, as a plain page, for a direct link.
 - `archive.html` and `archive.json`: the poems that have run, as a list only (date, title, author, collection, year);
   no poem text is kept. After replacing `poem.json`, run `python3 tools/archive_add.py` to add it to the list.
-  The page leaves out whichever poem is up tonight.
+  Each title links out to where the poem can be read (its `url`) or to a WorldCat library search; the poem that is
+  up tonight (the same date as `poem.json`) is marked "up now" and links to the main page, and nothing dated after it is
+  listed. The round chip at its head is `assets/notturno-logo.png`, the widget's mark, on a dark disc drawn in CSS.
 - Where a poem lives elsewhere (an American Life in Poetry column, say), give `poem.json` two more fields:
-  `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view, `text.html` and the archive
-  then show a "Read it at American Life in Poetry" link. Only `https://` links are shown.
+  `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view and `text.html`
+  then show a "Read it at American Life in Poetry" link, and the archive links the poem's title there. Only `https://` links are shown.
 - Printing: the Text only view and `text.html` have a "Print" link that prints the poem alone.
 - Embedding: the page detects when it is inside an iframe and fills the frame edge to edge; `?embed=1` forces the same.
   `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
