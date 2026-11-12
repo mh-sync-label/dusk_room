@@ -15,10 +15,17 @@ and takes over on its own if the 3D scene cannot run.
   loading logo, the bookmark, the dust frames (`dust.json`), the café figures (`cafe-figures.json`, fetched only when
   the café is built), and the Vathograph picture and its cut-out chair (`vath-bg.jpg`, `vath-fg.png`, used only there).
   Kept as files rather than inlined so the page itself is small and the browser caches each asset on its own.
-- `poem.json`: tonight's poem, `{ title, author, year, lines: [...], collection?, date?, phase?, note? }`. Replace it
+- `poem.json`: tonight's poem, `{ title, author, year, lines: [...], collection?, date?, source?, url?, phase?, note? }`. Replace it
   nightly; the page fetches it with no caching. One copy of the current poem is also baked into `index.html` (the
   `POEM` constant near the top of the text-view script) so the page is never empty while it loads.
 - `text.html`: the poem alone, as a plain page, for a direct link.
+- `archive.html` and `archive.json`: the poems that have run, as a list only (date, title, author, collection, year);
+  no poem text is kept. After replacing `poem.json`, run `python3 tools/archive_add.py` to add it to the list.
+  The page leaves out whichever poem is up tonight.
+- Where a poem lives elsewhere (an American Life in Poetry column, say), give `poem.json` two more fields:
+  `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view, `text.html` and the archive
+  then show a "Read it at American Life in Poetry" link. Only `https://` links are shown.
+- Printing: the Text only view and `text.html` have a "Print this poem" link that prints the poem alone.
 - Embedding: the page detects when it is inside an iframe and fills the frame edge to edge; `?embed=1` forces the same.
   `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
   time (ms per frame and fps, averaged over the last second), the shadow-map rate, and the pixel ratio in the stage's
