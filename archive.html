@@ -19,7 +19,10 @@ main { max-width: 34em; margin: 0 auto; }
 h1 { margin: 0 0 .2em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75rem); line-height: 1.2; }
 .lead { margin: 0 0 1.6em; color: var(--soft); font-size: 1.02rem; }
 ol { list-style: none; margin: 0; padding: 0; }
-li { display: grid; grid-template-columns: 7.2em minmax(0, 1fr); gap: 0 1em; padding: .8em 0; border-top: 1px solid var(--rule); }
+.mark { display: block; width: 9.5rem; max-width: 60%; height: auto; margin: 0 0 1.3em -.15rem; }
+h2 { margin: 1.9em 0 .55em; font-weight: 400; font-size: .95rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+h2:first-of-type { margin-top: 0; }
+li { display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 0 1em; padding: .8em 0; border-top: 1px solid var(--rule); }
 li:last-child { border-bottom: 1px solid var(--rule); }
 time { color: var(--faint); font-size: .95rem; font-variant-numeric: tabular-nums; padding-top: .12em; }
 .t { margin: 0; font-weight: 500; font-size: 1.12rem; line-height: 1.3; overflow-wrap: break-word; }
@@ -35,19 +38,25 @@ a:hover { text-decoration-color: currentColor; }
 </head>
 <body>
 <main>
+  <a href="index.html" aria-label="Notturno"><img class="mark" src="assets/notturno-wordmark.png" width="480" height="344" alt="Notturno"></a>
   <h1>Archive</h1>
   <p class="lead">Each poem was up for one night.</p>
-  <ol id="list" aria-live="polite"><li class="empty" style="display:block">Loading the list.</li></ol>
+  <div id="list" aria-live="polite"><p class="empty">Loading the list.</p></div>
   <p class="back"><a href="text.html">Tonight’s poem</a></p>
 </main>
 <script>
 (function () {
   var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  function when(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? MONTHS[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1] : ''; }
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function parts(d) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d || ''); return m ? { y: +m[1], mo: +m[2] - 1, d: +m[3] } : null; }
+  function month(d) { var p = parts(d); return p ? MONTHS[p.mo] + ' ' + p.y : ''; }                       // the heading a night files under
+  function day(d) { var p = parts(d); return p ? DAYS[new Date(Date.UTC(p.y, p.mo, p.d)).getUTCDay()] + ' ' + p.d : ''; }
+  // every entry leads somewhere: its own page where it has one, otherwise a library search for the book (or the poet)
+  function library(p) { return 'https://search.worldcat.org/search?q=' + encodeURIComponent((p.collection ? p.collection + ' ' : '') + (p.author || p.title)); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function get(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
   var list = document.getElementById('list');
-  function say(msg) { list.textContent = ''; var li = el('li', 'empty', msg); li.style.display = 'block'; list.appendChild(li); }
+  function say(msg) { list.textContent = ''; list.appendChild(el('p', 'empty', msg)); }
   Promise.all([get('archive.json'), get('poem.json')]).then(function (r) {
     var arc = r[0], now = r[1];
     if (!arc || !Array.isArray(arc.poems)) { say('The list could not be loaded just now.'); return; }
@@ -56,16 +65,18 @@ a:hover { text-decoration-color: currentColor; }
       .sort(function (a, b) { return a.date < b.date ? 1 : -1; });
     if (!poems.length) { say('Nothing here yet: the first poem is still up.'); return; }
     list.textContent = '';
+    var ol = null, head = '';
     poems.forEach(function (p) {
-      var li = el('li'), t = el('time', '', when(p.date)), box = el('div');
+      if (month(p.date) !== head) { head = month(p.date); list.appendChild(el('h2', '', head)); ol = el('ol'); list.appendChild(ol); }
+      var li = el('li'), t = el('time', '', day(p.date)), box = el('div');
       t.setAttribute('datetime', p.date);
       box.appendChild(el('p', 't', p.title));
       if (p.author) box.appendChild(el('p', 'a', p.author));
       if (p.collection || p.year) { var f = el('p', 'f'); if (p.collection) { f.append('from '); f.appendChild(el('i', '', p.collection)); } if (p.year) f.append((p.collection ? ' \u00b7 ' : '') + p.year); box.appendChild(f); }
-      if (typeof p.url === 'string' && /^https:\/\//.test(p.url)) {       // where the poem lives (for example its American Life in Poetry column)
-        var s = el('p', 's'), a = el('a', '', 'Read it at ' + (p.source || 'its source')); a.href = p.url; a.target = '_blank'; a.rel = 'noopener'; s.appendChild(a); box.appendChild(s);
-      }
-      li.appendChild(t); li.appendChild(box); list.appendChild(li);
+      var s = el('p', 's'), a = el('a'), own = typeof p.url === 'string' && /^https:\/\//.test(p.url);
+      a.textContent = own ? 'Read it at ' + (p.source || 'its source') : p.collection ? 'Find the book in a library' : p.author ? 'Find ' + p.author + ' in a library' : 'Find it in a library';
+      a.href = own ? p.url : library(p); a.target = '_blank'; a.rel = 'noopener'; s.appendChild(a); box.appendChild(s);
+      li.appendChild(t); li.appendChild(box); ol.appendChild(li);
     });
   });
 })();
