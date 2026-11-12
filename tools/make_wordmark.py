@@ -40,8 +40,19 @@ def curve(x,y):
     return ''.join(out)+'Z'
 for cc in measure.find_contours(P,0.5):
     if len(cc)<40: continue
-    big_=len(cc)>3000; sg=22.0 if big_ else 6.0; step=26 if big_ else 9     # the N takes more smoothing than the small lettering
-    y=ndi.gaussian_filter1d(cc[:-1,0],sg,mode='wrap')-4; x=ndi.gaussian_filter1d(cc[:-1,1],sg,mode='wrap')-4
+    big_=len(cc)>3000; g=lambda v,sg: ndi.gaussian_filter1d(v,sg,mode='wrap')
+    Y,X=cc[:-1,0]-4,cc[:-1,1]-4
+    if big_:
+        # the N: long edges are smoothed hard (HEAVY) so they run clean; where the outline turns sharply (stroke ends,
+        # the folds) it is smoothed lightly (LIGHT) so the corners keep their shape instead of melting into blobs
+        LIGHT,HEAVY,step=16.0,70.0,30
+        x1,y1=g(X,24.0),g(Y,24.0); L=40
+        a=np.arctan2(np.roll(y1,-L)-y1,np.roll(x1,-L)-x1); b=np.arctan2(y1-np.roll(y1,L),x1-np.roll(x1,L))
+        turn=np.abs((a-b+np.pi)%(2*np.pi)-np.pi)                          # how much the outline turns over ~13 scan px
+        m=g(np.clip((turn-0.35)/0.5,0,1),HEAVY*0.8); m=np.clip(m/max(m.max(),1e-6)*1.6,0,1)
+        x=g(X,HEAVY)*(1-m)+g(X,LIGHT)*m; y=g(Y,HEAVY)*(1-m)+g(Y,LIGHT)*m
+    else:
+        step=10; x,y=g(X,8.0),g(Y,8.0)                                    # the small lettering
     d.append(curve(x[::step],y[::step]))
 svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" role="img" aria-label="Notturno"><path fill="#1b1b1b" fill-rule="evenodd" d="%s"/></svg>\n'%(w,h,''.join(d))
 open(OUT,'w').write(svg); print(w,h,len(svg),len(d))
