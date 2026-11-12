@@ -15,18 +15,25 @@ and takes over on its own if the 3D scene cannot run.
   loading logo, the bookmark, the dust frames (`dust.json`), the café figures (`cafe-figures.json`, fetched only when
   the café is built), and the Vathograph picture and its cut-out chair (`vath-bg.jpg`, `vath-fg.png`, used only there).
   Kept as files rather than inlined so the page itself is small and the browser caches each asset on its own.
-- `poem.json`: tonight's poem, `{ title, author, year, lines: [...], collection?, date?, source?, url?, phase?, note? }`. Replace it
+- `poem.json`: tonight's poem, `{ title, author, year, lines: [...], collection?, publisher?, book_url?, date?, source?, url?, phase?, note? }`. Replace it
   nightly; the page fetches it with no caching. One copy of the current poem is also baked into `index.html` (the
   `POEM` constant near the top of the text-view script) so the page is never empty while it loads.
 - `text.html`: the poem alone, as a plain page, for a direct link.
-- `archive.html` and `archive.json`: the poems that have run, as a list only (date, title, author, collection, year);
+- `archive.html` and `archive.json`: the poems that have run, as a list only (date, title, author, collection, year, and the
+  book's publisher and link where known);
   no poem text is kept. After replacing `poem.json`, run `python3 tools/archive_add.py` to add it to the list.
-  Each title links out to where the poem can be read (its `url`) or to a WorldCat library search; the poem that is
-  up tonight (the same date as `poem.json`) is marked "up now" and links to the main page, and nothing dated after it is
+  Where the book is known, its name links to the publisher's page for it (`book_url`); a title links out only where the
+  poem has its own page (`url`), and otherwise is plain text. The poem that is up tonight (the same date as `poem.json`) is marked "up now" and links to the main page, and nothing dated after it is
   listed. The round chip at its head is `assets/notturno-logo.png`, the widget's mark, on a dark disc drawn in CSS.
 - Where a poem lives elsewhere (an American Life in Poetry column, say), give `poem.json` two more fields:
   `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view and `text.html`
   then show a "Read it at American Life in Poetry" link, and the archive links the poem's title there. Only `https://` links are shown.
+- When the book a poem comes from is known, give `poem.json` its publisher and the publisher's own page for the book, as
+  part of the nightly step (before running `tools/archive_add.py`, which carries them into the archive):
+  `"collection": "The Rain in the Trees", "publisher": "Knopf", "book_url": "https://www.penguinrandomhouse.com/books/113558/the-rain-in-the-trees-by-w-s-merwin/"`.
+  The archive then reads "from *The Rain in the Trees* · 1988 · Knopf", with the book's name linked to that page. The tool
+  refuses a `book_url` that is not a plain `https://` link, and the page ignores one. Leave both out when the book is not
+  known; the entry then shows just the title and the poet (and the book's name, if known, unlinked).
 - Printing: the Text only view and `text.html` have a "Print" link that prints the poem alone.
 - Embedding: the page detects when it is inside an iframe and fills the frame edge to edge; `?embed=1` forces the same.
   `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
