@@ -161,6 +161,18 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
 .viewer .tv-title { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.35rem, 3.4vw, 1.7rem); line-height: 1.2; text-wrap: balance; }
 .viewer .tv-author { margin: 0; font-style: italic; font-size: 1.06rem; color: #55575b; }
 .viewer .tv-from { margin: .25em 0 0; font-size: .93rem; color: #8b8378; }
+.viewer .tv-more { margin: 2.2em 0 0; font-size: .93rem; color: #8b8378; display: flex; flex-wrap: wrap; gap: .3em 1.2em; align-items: baseline; }
+.viewer .tv-more a, .viewer .tv-more button { color: #55575b; font: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: #cfc9be; text-underline-offset: .18em; }
+.viewer .tv-more a:hover, .viewer .tv-more button:hover { color: #1b1b1b; text-decoration-color: currentColor; }
+/* printing (from the Text only view): the poem alone, black on white */
+@media print {
+  body.printing-poem { background: #fff !important; }
+  body.printing-poem * { visibility: hidden !important; }
+  body.printing-poem #textView, body.printing-poem #textView .tv-card, body.printing-poem #textView .tv-card * { visibility: visible !important; }
+  body.printing-poem #textView { display: block !important; position: absolute !important; left: 0; top: 0; width: 100%; height: auto !important; overflow: visible !important; background: #fff !important; padding: 0 !important; }
+  body.printing-poem .tv-more { display: none !important; }
+  body.printing-poem .tv-lines { font-size: 12pt; line-height: 1.5; }
+}
 .viewer .tv-lines { margin: 1.3em 0 0; white-space: pre-wrap; font-size: clamp(1.02rem, 2.6vw, 1.16rem); line-height: 1.55; overflow-wrap: break-word; }
 .textmode .callout, .textmode .callout-lines, .textmode .progress { display: none; }
 </style>
@@ -178,7 +190,8 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
   <div class="stage" id="stage">
     <canvas id="c" tabindex="0" role="img" aria-label="A light-oak writing desk in a quiet greyscale room, with tonight's poem on loose sheets in an open folder, and a window to the night. Click the folder, or press Enter, to read it; Escape returns to the room. The poem is also available as text."></canvas>
     <div class="textview" id="textView" hidden aria-label="Tonight's poem as text"><div class="tv-in">
-      <article class="tv-card"><h2 class="tv-title" id="tvTitle"></h2><p class="tv-author" id="tvAuthor"></p><p class="tv-from" id="tvFrom" hidden></p><p class="tv-lines" id="tvLines"></p></article>
+      <article class="tv-card"><h2 class="tv-title" id="tvTitle"></h2><p class="tv-author" id="tvAuthor"></p><p class="tv-from" id="tvFrom" hidden></p><p class="tv-lines" id="tvLines"></p>
+        <p class="tv-more"><a id="tvSource" hidden target="_blank" rel="noopener"></a><button id="tvPrint" type="button">Print this poem</button><a href="archive.html" target="_blank" rel="noopener">Archive</a></p></article>
     </div></div>
     <div class="status" id="status" role="status"><img class="ld-logo" src="assets/logo.png" alt="Notturno" width="180" height="152"><span class="ld-word"><span class="ld">Loading</span></span></div>
     <div class="hint" id="hint">Click the folder to read</div>
@@ -322,9 +335,16 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
     if (p.year) f.appendChild(document.createTextNode((p.collection ? ' · ' : '') + p.year));
     f.hidden = !(p.collection || p.year);
     $('tvLines').textContent = (p.lines || []).join('\n');
+    var src = $('tvSource'), ok = typeof p.url === 'string' && /^https:\/\//.test(p.url);   // where the poem lives (e.g. its American Life in Poetry column)
+    src.hidden = !ok; if (ok) { src.href = p.url; src.textContent = 'Read it at ' + (p.source || 'its source'); }
   }
   fill(POEM); render(['scene', 'panel', 'view']);
   btn.addEventListener('click', D.toggleText);
+  $('tvPrint').addEventListener('click', function () {   // the poem alone: the class is only on while the print dialog is up
+    document.body.classList.add('printing-poem');
+    var done = function () { document.body.classList.remove('printing-poem'); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done); window.print();
+  });
   // the older hooks, kept for anything that still calls them
   window.__showText = function (p) { if (p && p.title && p.lines) fill(p); };
   window.__toText = function (reason) { D.sceneFailed(reason); };
