@@ -35,6 +35,12 @@ and takes over on its own if the 3D scene cannot run.
   floor, and its strength all scale with the lit fraction. To review another night, `?illum=0..1` sets the lit fraction
   (0 new, 1 full, on tonight's side of full) and `?phase=0..1` sets the phase (0 new, 0.25 first quarter, 0.5 full, 0.75
   last quarter). The knobs are in the `ML` object near the top of `buildRoom()`.
+- Reading: clicking the folder holds the room's last frame as a still, pushes it slightly toward the folder, and dissolves
+  it into the page, so the move is smooth however slowly the room draws (`?move=fly` flies the camera there instead).
+  The poem is drawn as its own high-resolution ink texture on a near-white sheet; on narrow (phone) frames it is set
+  larger, and long lines turn over with a hanging indent. Each poem's sheet carries a few quiet marks (a fold, a turned
+  corner, a pencil tick) seeded from the poem itself, so every reader sees the same sheet; `?sheet=<word>` previews
+  another. The knobs are `MOVE`, `INK`, `SHEET`, `TALL`, and `WHITE` in `index.html`.
 - Rendering cost: the shadow maps are redrawn every other frame while the room is still and every third while the camera
   is moving (they are drawn from the lights, so the camera's moves do not change them); the renderer asks for the
   high-performance GPU on two-GPU machines.
