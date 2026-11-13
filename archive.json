@@ -2,6 +2,14 @@
  "note": "Poems that have run, newest first. A list only: no poem text is kept here. Updated by tools/archive_add.py.",
  "poems": [
   {
+   "date": "2026-11-12",
+   "title": "The Cart",
+   "author": "Mary Ruefle",
+   "collection": "Cold Pluto",
+   "year": 1996,
+   "publisher": "Carnegie Mellon University Press"
+  },
+  {
    "date": "2026-11-10",
    "title": "Thanks",
    "author": "W. S. Merwin",
