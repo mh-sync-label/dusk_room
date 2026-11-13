@@ -34,43 +34,27 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
 <body>
 <main>
   <article aria-labelledby="t">
-    <h1 id="t">Thanks</h1>
-    <p class="author" id="a">W. S. Merwin</p>
-    <p class="from" id="f">from <i>The Rain in the Trees</i> · 1988</p>
-    <p class="lines" id="l">Listen
-with the night falling we are saying thank you
-we are stopping on the bridges to bow from the railings
-we are running out of the glass rooms
-with our mouths full of food to look at the sky
-and say thank you
-we are standing by the water thanking it
-standing by the windows looking out
-in our directions
-
-back from a series of hospitals back from a mugging
-after funerals we are saying thank you
-after the news of the dead
-whether or not we knew them we are saying thank you
-
-over telephones we are saying thank you
-in doorways and in the backs of cars and in elevators
-remembering wars and the police at the door
-and the beatings on stairs we are saying thank you
-in the banks we are saying thank you
-in the faces of the officials and the rich
-and of all who will never change
-we go on saying thank you thank you
-
-with the animals dying around us
-our lost feelings we are saying thank you
-with the forests falling faster than the minutes
-of our lives we are saying thank you
-with the words going out like cells of a brain
-with the cities growing over us
-we are saying thank you faster and faster
-with nobody listening we are saying thank you
-we are saying thank you and waving
-dark though it is</p>
+    <h1 id="t">The Cart</h1>
+    <p class="author" id="a">Mary Ruefle</p>
+    <p class="from" id="f">from <i>Cold Pluto</i> · 1996</p>
+    <p class="lines" id="l">The empty grocery cart is beginning to roll
+across the empty parking lot. It’s beginning to act
+like Marlon Brando might if no one were watching.
+It’s a joyous sight, but it might not end all that
+happily, the way someone light in the head
+does something charming and winds up dead.
+My thoughts are so heavy, you couldn’t lift
+the bier. They are so light and stray so far
+someone in a uniform wants to bring them in.
+The world might be in agony, but I don’t think so.
+Somewhere a woman is swathed in black veils
+and smiling too. It might be the eve of her baptism,
+the day after her son hit a pole.
+How can she signal her acceptance of life?
+What if a hummingbird enters her mouth? I hate
+the thought, whizzing by in red clothes.
+Yet I admire its gloves. Hands are unbearably beautiful.
+They hold on to things. They let things go.</p>
   </article>
   <p class="more"><a id="src" hidden target="_blank" rel="noopener"></a><button id="print" type="button">Print</button><a href="archive.html">Archive</a></p>
 </main>
@@ -87,7 +71,7 @@ dark though it is</p>
     var src = document.getElementById('src'), ok = typeof p.url === 'string' && /^https:\/\//.test(p.url);   // where the poem lives (e.g. its American Life in Poetry column)
     src.hidden = !ok; if (ok) { src.href = p.url; src.textContent = 'Read it at ' + (p.source || 'its source'); }
   }
-  var baked = {"title": "Thanks", "author": "W. S. Merwin", "year": 1988, "lines": ["Listen", "with the night falling we are saying thank you", "we are stopping on the bridges to bow from the railings", "we are running out of the glass rooms", "with our mouths full of food to look at the sky", "and say thank you", "we are standing by the water thanking it", "standing by the windows looking out", "in our directions", "", "back from a series of hospitals back from a mugging", "after funerals we are saying thank you", "after the news of the dead", "whether or not we knew them we are saying thank you", "", "over telephones we are saying thank you", "in doorways and in the backs of cars and in elevators", "remembering wars and the police at the door", "and the beatings on stairs we are saying thank you", "in the banks we are saying thank you", "in the faces of the officials and the rich", "and of all who will never change", "we go on saying thank you thank you", "", "with the animals dying around us", "our lost feelings we are saying thank you", "with the forests falling faster than the minutes", "of our lives we are saying thank you", "with the words going out like cells of a brain", "with the cities growing over us", "we are saying thank you faster and faster", "with nobody listening we are saying thank you", "we are saying thank you and waving", "dark though it is"], "collection": "The Rain in the Trees", "date": "2026-11-10"};
+  var baked = {"title": "The Cart", "author": "Mary Ruefle", "year": 1996, "lines": ["The empty grocery cart is beginning to roll", "across the empty parking lot. It’s beginning to act", "like Marlon Brando might if no one were watching.", "It’s a joyous sight, but it might not end all that", "happily, the way someone light in the head", "does something charming and winds up dead.", "My thoughts are so heavy, you couldn’t lift", "the bier. They are so light and stray so far", "someone in a uniform wants to bring them in.", "The world might be in agony, but I don’t think so.", "Somewhere a woman is swathed in black veils", "and smiling too. It might be the eve of her baptism,", "the day after her son hit a pole.", "How can she signal her acceptance of life?", "What if a hummingbird enters her mouth? I hate", "the thought, whizzing by in red clothes.", "Yet I admire its gloves. Hands are unbearably beautiful.", "They hold on to things. They let things go."], "collection": "Cold Pluto", "publisher": "Carnegie Mellon University Press", "date": "2026-11-12"};
   document.getElementById('print').addEventListener('click', function () { window.print(); });
   show(baked);
   try { fetch('poem.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (p) { if (p && p.title && p.lines) show(p); }).catch(function () {}); } catch (e) {}
