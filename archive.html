@@ -37,12 +37,14 @@ h1 { margin: 0 0 .3em; font-weight: 500; font-size: clamp(1.6rem, 5vw, 1.85rem);
 h2 { margin: 2.4rem 0 .9rem; font-weight: 400; font-style: italic; font-size: 1rem; color: var(--soft); }
 h2:first-child { margin-top: 0; }
 ol { list-style: none; margin: 0; padding: 0; }
-li { position: relative; display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: 0 .9rem; padding: .55rem 0 .7rem; }
+li { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: 0 .9rem; padding: .55rem 0 .7rem; }
 time { color: var(--quiet); font-size: .9rem; font-variant-numeric: tabular-nums; line-height: 1.3; padding-top: .3rem; white-space: nowrap; }
 .t { margin: 0; font-weight: 500; font-size: 1.18rem; line-height: 1.3; overflow-wrap: break-word; text-wrap: pretty; }
-/* the whole entry is the title's target (a comfortable tap); the focus ring stays on the title itself */
-.t a::after { content: ""; position: absolute; inset: 0; }
-.t a:hover { text-decoration-color: currentColor; }
+/* each link is its own target: vertical padding (not a bigger font) gives it a tap height of at least 40px without
+   moving the lines; an entry with no known book or page is plain text, title and poet */
+.t a, .f a { padding-block: 12px; }
+.f a { color: var(--soft); }
+.f a:hover { color: var(--ink); }
 .nb { white-space: nowrap; }
 .out { display: inline-block; width: .52em; height: .52em; margin-left: .22em; vertical-align: .32em; color: var(--quiet); }
 .a { margin: .05em 0 0; font-style: italic; color: var(--soft); }
@@ -78,7 +80,7 @@ footer a:hover { color: var(--ink); }
   <a class="chip" href="index.html" title="Tonight’s poem"><img src="assets/notturno-logo.png" width="108" height="91" alt="Notturno"></a>
   <h1>Archive</h1>
   <p class="lead">Each poem was up for two nights.</p>
-  <p class="lead">The poems are not kept here. Each title leads to where it can be read or found.</p>
+  <p class="lead">The poems are not kept here. Each is listed with the book it comes from, where known, and a link to its publisher.</p>
   <div id="list" aria-live="polite"><p class="note">Loading the list…</p></div>
 </main>
 <footer>
@@ -94,9 +96,11 @@ footer a:hover { color: var(--ink); }
   function month(d) { var p = parts(d); return p ? MONTHS[p.mo] + ' ' + p.y : ''; }                       // the heading a night files under
   function day(d) { var p = parts(d); return p ? DAYS[new Date(Date.UTC(p.y, p.mo, p.d)).getUTCDay()] + ' ' + p.d : ''; }
   function longDay(d) { var p = parts(d); return p ? p.d + ' ' + MONTHS[p.mo] + ' ' + p.y : ''; }
-  // every entry leads somewhere: its own page where it has one, otherwise a library search for the book (or the poet)
-  function library(p) { return 'https://search.worldcat.org/search?q=' + encodeURIComponent((p.collection ? p.collection + ' ' : '') + (p.author || p.title)); }
-  function own(p) { return typeof p.url === 'string' && /^https:\/\/[^\s"'<>]+$/.test(p.url); }
+  // a link from the data is used only if it is a plain https URL (no user:password@ part); anything else counts as absent
+  function safe(u) {
+    if (typeof u !== 'string' || !/^https:\/\/[^\s"'<>]+$/.test(u)) return null;
+    try { var x = new URL(u); return x.protocol === 'https:' && x.hostname && !x.username && !x.password ? x.href : null; } catch (e) { return null; }
+  }
   function str(v) { return v == null ? '' : String(v); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function arrow() {                                                                                       // the "leaves this site" mark
@@ -105,6 +109,15 @@ footer a:hover { color: var(--ink); }
     path.setAttribute('d', 'M2 8 L8 2 M3.4 2 H8 V6.6'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor');
     path.setAttribute('stroke-width', '1.1'); path.setAttribute('stroke-linecap', 'round'); path.setAttribute('stroke-linejoin', 'round');
     s.appendChild(path); return s;
+  }
+  // fills an outbound link: the text, with its last word kept with the arrow so the arrow never wraps alone
+  function outLink(a, text, href, wrap, said) {
+    var cut = text.lastIndexOf(' '), box = wrap ? el(wrap) : a;
+    box.appendChild(document.createTextNode(cut > 0 ? text.slice(0, cut + 1) : ''));
+    var nb = el('span', 'nb', cut > 0 ? text.slice(cut + 1) : text); nb.appendChild(arrow()); box.appendChild(nb);
+    if (wrap) a.appendChild(box);
+    a.appendChild(el('span', 'vh', said));
+    a.href = href; a.target = '_blank'; a.rel = 'noopener';
   }
   function get(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
   var list = document.getElementById('list');
@@ -120,23 +133,41 @@ footer a:hover { color: var(--ink); }
     var ol = null, head = '';
     poems.forEach(function (p, i) {
       if (month(p.date) !== head) { head = month(p.date); list.appendChild(el('h2', '', head)); ol = el('ol'); list.appendChild(ol); }
-      var up = tonight && p.date === tonight, out = !up, ext = own(p);
-      var li = el('li', up ? 'now' : ''), t = el('time', '', day(p.date)), box = el('div'), h = el('p', 't'), a = el('a');
+      var up = tonight && p.date === tonight, page = safe(p.url), book = safe(p.book_url);
+      var title = str(p.title), coll = str(p.collection), pub = str(p.publisher), year = str(p.year);
+      var li = el('li', up ? 'now' : ''), t = el('time', '', day(p.date)), box = el('div'), h = el('p', 't'), w = null;
       t.setAttribute('datetime', p.date); t.setAttribute('aria-label', longDay(p.date));
-      // the title is the link; its last word is kept with the arrow so the arrow never wraps alone
-      var title = str(p.title), cut = title.lastIndexOf(' ');
-      if (out) {
-        a.appendChild(document.createTextNode(cut > 0 ? title.slice(0, cut + 1) : ''));
-        var nb = el('span', 'nb', cut > 0 ? title.slice(cut + 1) : title); nb.appendChild(arrow()); a.appendChild(nb);
-        a.appendChild(el('span', 'vh', ' (opens in a new tab)'));
-        a.href = ext ? p.url : library(p); a.target = '_blank'; a.rel = 'noopener';
-      } else { a.textContent = title; a.href = 'index.html'; }
-      var wid = 'w' + i; a.setAttribute('aria-describedby', wid);
-      h.appendChild(a); box.appendChild(h);
+      // the title: to the main page while it is up, to the poem's own page where it has one, otherwise plain text
+      if (up || page) {
+        w = el('p', 'w', up ? 'up now' : 'read it at ' + (str(p.source) || 'its source')); w.id = 'w' + i;
+        var a = el('a'); a.setAttribute('aria-describedby', w.id);
+        if (up) { a.textContent = title; a.href = 'index.html'; } else outLink(a, title, page, null, ' (opens in a new tab)');
+        h.appendChild(a);
+      } else h.textContent = title;
+      box.appendChild(h);
       if (p.author) box.appendChild(el('p', 'a', str(p.author)));
-      if (p.collection || p.year) { var f = el('p', 'f'); if (p.collection) { f.append('from '); f.appendChild(el('i', '', str(p.collection))); } if (p.year) f.append((p.collection ? ' · ' : '') + str(p.year)); box.appendChild(f); }
-      var w = el('p', 'w', up ? 'up now' : ext ? 'read it at ' + (str(p.source) || 'its source') : p.collection ? 'find the book in a library' : p.author ? 'find ' + str(p.author) + ' in a library' : 'find it in a library');
-      w.id = wid; box.appendChild(w);
+      // the book line: from Collection · year · Publisher; with a publisher's page, the book's name links to it
+      if (coll || year || pub || book) {
+        var f = el('p', 'f'), bits = [];
+        if (coll) {
+          f.append('from ');
+          if (book) { var ba = el('a'); outLink(ba, coll, book, 'i', ' (the publisher’s page for the book, opens in a new tab)'); f.appendChild(ba); }
+          else f.appendChild(el('i', '', coll));
+        }
+        if (year) bits.push(document.createTextNode(year));
+        if (pub && !(book && !coll)) bits.push(document.createTextNode(pub));
+        if (book && !coll) { var bb = el('a'); outLink(bb, pub || 'the book', book, null, ' (the publisher’s page for the book, opens in a new tab)'); bits.push(bb); }
+        // each part is kept whole with the dot after it, so the line breaks between parts (the dot ending the line), not
+        // inside a name (unless a name is very long)
+        if (coll && bits.length) f.append('\u00a0\u00b7');
+        bits.forEach(function (b, k) {
+          var seg = el('span', (b.textContent || '').length <= 34 ? 'nb' : '');
+          if (coll || k) f.append(' ');
+          seg.appendChild(b); if (k < bits.length - 1) seg.append('\u00a0\u00b7'); f.appendChild(seg);
+        });
+        box.appendChild(f);
+      }
+      if (w) box.appendChild(w);
       li.appendChild(t); li.appendChild(box); ol.appendChild(li);
     });
   });
