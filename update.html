@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notturno · Updating</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+/* the same plain white and type as archive.html. How to replace the app with a newer one; the pictures are drawings, not screenshots. */
+:root { --ground: #ffffff; --ink: #1b1b1b; --soft: #55575b; --faint: #8b8378; --rule: #e9e6e0; --wash: #f6f4f0;
+  --serif: "EB Garamond", Garamond, "Times New Roman", serif; --ui: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--ground); color: var(--ink); font-family: var(--serif);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(28px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px)); }
+main { max-width: 34em; margin: 0 auto; }
+h1 { margin: 0 0 .2em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75rem); line-height: 1.2; }
+.lead { margin: 0 0 1.6em; color: var(--soft); font-size: 1.02rem; }
+ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+ol.steps > li { counter-increment: step; display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 0 .6em; padding: 1.3em 0 1.5em; border-top: 1px solid var(--rule); }
+ol.steps > li:last-child { border-bottom: 1px solid var(--rule); }
+ol.steps > li::before { content: counter(step); color: var(--faint); font-size: 1.12rem; font-variant-numeric: tabular-nums; padding-top: .02em; }
+.t { margin: 0; font-weight: 500; font-size: 1.12rem; line-height: 1.3; }
+.d { margin: .25em 0 0; color: var(--soft); font-size: 1.02rem; line-height: 1.45; }
+.d b { font-weight: 500; color: var(--ink); }
+figure { margin: 1em 0 0; background: var(--wash); border-radius: 10px; padding: 18px 14px; }
+figure svg { display: block; width: 100%; height: auto; max-width: 400px; margin: 0 auto; }
+svg text { font-family: var(--ui); }
+.get { display: inline-block; margin: .9em 0 0; padding: .5em 1.15em .55em; border: 1px solid var(--ink); border-radius: 999px; font-size: 1.05rem; text-decoration: none; color: var(--ink); }
+.get:hover, .get:focus-visible { background: var(--ink); color: var(--ground); }
+a { color: inherit; text-decoration-color: #b9b3a8; text-underline-offset: .18em; }
+a:hover { text-decoration-color: currentColor; }
+details { margin: 1.6em 0 0; color: var(--soft); font-size: 1.02rem; line-height: 1.45; }
+summary { cursor: pointer; color: var(--ink); }
+details ol { margin: .6em 0 0; padding-left: 1.3em; }
+details li { margin: .3em 0; }
+details p { margin: .6em 0 0; }
+details b { font-weight: 500; color: var(--ink); }
+.back { margin: 1.8em 0 0; font-size: .98rem; color: var(--soft); }
+@media (max-width: 26em) { ol.steps > li { grid-template-columns: 1.5em minmax(0, 1fr); } figure { padding: 12px 8px; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <image id="nicon" width="64" height="64" href="data:image/png;base64,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"/>
+  <g id="folder"><path d="M4 16a6 6 0 0 1 6-6h13l6 6h25a6 6 0 0 1 6 6v26a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6z" fill="#dfe6ee" stroke="#aab6c4" stroke-width="1.2"/><path d="M24 44l8-15 8 15M27.5 38.5h9" fill="none" stroke="#8795a6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>
+</defs></svg>
+<main>
+  <h1>Updating Notturno</h1>
+  <p class="lead">A new version takes a couple of minutes to put in. Your settings, and where the widget sits on your desktop, stay as they are.</p>
+
+  <ol class="steps">
+    <li><div>
+      <p class="t">Download the new version</p>
+      <p class="d">It arrives in your Downloads folder as <b>Notturno.dmg</b>.</p>
+      <a class="get" href="https://github.com/mh-sync-label/dusk_room/releases/latest/download/Notturno.dmg">Download Notturno</a>
+    </div></li>
+
+    <li><div>
+      <p class="t">Quit the Notturno you have now</p>
+      <p class="d">Click the crescent moon in the menu bar, near the clock, and choose <b>Quit Notturno</b>. The old one has to be closed before the new one can take its place.</p>
+      <figure role="img" aria-label="Drawing: the menu under the crescent moon in the menu bar, with Quit Notturno at the bottom, highlighted.">
+        <svg viewBox="0 0 400 198">
+          <rect x="0" y="0" width="400" height="26" rx="6" fill="#ffffff" stroke="#dcd8d0"/>
+          <g transform="translate(-22 0)"><path d="M252 8.2a5.6 5.6 0 1 0 5.2 8.2 4.6 4.6 0 0 1-5.2-8.2z" fill="#1b1b1b"/>
+          <circle cx="252.6" cy="13" r="11" fill="none" stroke="#1b1b1b" stroke-width="1" stroke-dasharray="2 2.4" opacity=".45"/>
+          <g fill="none" stroke="#8b8378" stroke-width="1.3" stroke-linecap="round"><path d="M276 16.5a8 8 0 0 1 11 0M278.6 19a4.4 4.4 0 0 1 5.8 0"/><rect x="298" y="8.5" width="17" height="9" rx="2.2"/><path d="M317 11.5v3"/></g></g>
+          <text x="388" y="17.5" text-anchor="end" font-size="11" fill="#55575b">Mon 9:41 AM</text>
+          <rect x="176" y="32" width="170" height="158" rx="8" fill="#ffffff" stroke="#dcd8d0"/>
+          <g font-size="12" fill="#1b1b1b">
+            <text x="198" y="56">Keep on Top</text>
+            <text x="198" y="80">Open at Login</text>
+            <path d="M185 100.5l3 3 5-6.5" fill="none" stroke="#1b1b1b" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="198" y="104">Translucent</text>
+            <path d="M186 116.5h150" stroke="#e9e6e0"/>
+            <text x="198" y="138">Info</text>
+            <path d="M186 150.5h150" stroke="#e9e6e0"/>
+            <rect x="181" y="158" width="160" height="26" rx="5" fill="#1b1b1b"/>
+            <text x="198" y="175.5" fill="#ffffff">Quit Notturno</text>
+          </g>
+        </svg>
+      </figure>
+    </div></li>
+
+    <li><div>
+      <p class="t">Open the download and drag Notturno onto Applications</p>
+      <p class="d">Double-click <b>Notturno.dmg</b>. A small window opens with two things in it: drag <b>Notturno</b> onto the <b>Applications</b> folder beside it.</p>
+      <figure role="img" aria-label="Drawing: a window holding the Notturno icon and the Applications folder, with an arrow from the first to the second.">
+        <svg viewBox="0 0 400 200">
+          <rect x="30" y="6" width="340" height="188" rx="10" fill="#ffffff" stroke="#dcd8d0"/>
+          <path d="M30.5 34.5h339" stroke="#e9e6e0"/>
+          <g fill="#d9d5cd"><circle cx="48" cy="20" r="4.5"/><circle cx="63" cy="20" r="4.5"/><circle cx="78" cy="20" r="4.5"/></g>
+          <text x="200" y="24.5" text-anchor="middle" font-size="12" fill="#55575b">Notturno</text>
+          <use href="#nicon" x="88" y="70"/>
+          <text x="120" y="156" text-anchor="middle" font-size="12" fill="#1b1b1b">Notturno</text>
+          <use href="#folder" x="248" y="72"/>
+          <text x="280" y="156" text-anchor="middle" font-size="12" fill="#1b1b1b">Applications</text>
+          <g fill="none" stroke="#1b1b1b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M168 102h58" stroke-dasharray="1 6"/><path d="M222 95.5l8 6.5-8 6.5"/></g>
+        </svg>
+      </figure>
+    </div></li>
+
+    <li><div>
+      <p class="t">Choose Replace</p>
+      <p class="d">Your Mac notices there is already a Notturno in Applications and asks what to do. Click <b>Replace</b>.</p>
+      <figure role="img" aria-label="Drawing: a box asking whether to replace the Notturno already in Applications, with three buttons. Replace is highlighted.">
+        <svg viewBox="0 0 400 190">
+          <rect x="70" y="6" width="260" height="178" rx="14" fill="#ffffff" stroke="#dcd8d0"/>
+          <use href="#nicon" x="176" y="22" transform="translate(44 5.5) scale(.75)"/>
+          <text x="200" y="98" text-anchor="middle" font-size="12" font-weight="600" fill="#1b1b1b">“Notturno” is already here.</text>
+          <text x="200" y="116" text-anchor="middle" font-size="11" fill="#55575b">Replace it with the one you’re moving?</text>
+          <g font-size="11.5" text-anchor="middle">
+            <rect x="88" y="138" width="68" height="28" rx="7" fill="#efece6"/><text x="122" y="156.5" fill="#1b1b1b">Keep Both</text>
+            <rect x="166" y="138" width="68" height="28" rx="7" fill="#efece6"/><text x="200" y="156.5" fill="#1b1b1b">Stop</text>
+            <rect x="244" y="138" width="68" height="28" rx="7" fill="#1b1b1b"/><text x="278" y="156.5" fill="#ffffff">Replace</text>
+          </g>
+        </svg>
+      </figure>
+    </div></li>
+
+    <li><div>
+      <p class="t">Open Notturno again</p>
+      <p class="d">Open your <b>Applications</b> folder and double-click <b>Notturno</b>. Your Mac will stop it, as it did the first time you installed it, with a box saying Apple could not verify “Notturno”. Click <b>Done</b> (not Move to Trash).</p>
+    </div></li>
+
+    <li><div>
+      <p class="t">Tell your Mac to open it anyway</p>
+      <p class="d">Open <b>System Settings</b>, then <b>Privacy &amp; Security</b>, and scroll down to the Security section, where it says “Notturno” was blocked. Click <b>Open Anyway</b>, enter your Mac’s password if asked, and click <b>Open Anyway</b> once more.</p>
+      <figure role="img" aria-label="Drawing: the Security section of Privacy and Security in System Settings, saying Notturno was blocked, with an Open Anyway button.">
+        <svg viewBox="0 0 400 132">
+          <rect x="30" y="6" width="340" height="120" rx="10" fill="#ffffff" stroke="#dcd8d0"/>
+          <text x="48" y="32" font-size="12" font-weight="600" fill="#1b1b1b">Privacy &amp; Security</text>
+          <path d="M30.5 44.5h339" stroke="#e9e6e0"/>
+          <text x="48" y="66" font-size="11" fill="#8b8378">Security</text>
+          <text x="48" y="88" font-size="11.5" fill="#1b1b1b">“Notturno” was blocked to protect</text>
+          <text x="48" y="104" font-size="11.5" fill="#1b1b1b">your Mac.</text>
+          <rect x="262" y="78" width="92" height="28" rx="7" fill="#1b1b1b"/><text x="308" y="96.5" text-anchor="middle" font-size="11.5" fill="#ffffff">Open Anyway</text>
+        </svg>
+      </figure>
+      <p class="d">The widget comes back where you left it, and the crescent moon returns to the menu bar. This happens once for each new version. You can now eject the download and throw <b>Notturno.dmg</b> away.</p>
+      <p class="d">On macOS 13 or 14 there is a shorter way: in Applications, hold Control and click <b>Notturno</b>, choose <b>Open</b>, then <b>Open</b> again.</p>
+    </div></li>
+  </ol>
+
+  <p class="back"><a href="text.html">Tonight’s poem</a> · <a href="archive.html">Archive</a></p>
+</main>
+</body>
+</html>
