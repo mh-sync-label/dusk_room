@@ -18,7 +18,8 @@ and takes over on its own if the 3D scene cannot run.
 - `poem.json`: tonight's poem, `{ title, author, year, lines: [...], collection?, publisher?, book_url?, date?, source?, url?, phase?, note? }`. Replace it
   nightly; the page fetches it with no caching. One copy of the current poem is also baked into `index.html` (the
   `POEM` constant near the top of the text-view script) so the page is never empty while it loads.
-- `text.html`: the poem alone, as a plain page, for a direct link.
+- `text.html`: the poem alone, as a plain page, for a direct link. It reads tonight's poem from the Notturno endpoint first; if that
+  cannot be reached, it falls back to this site's `poem.json`, and then to the copy baked into the page.
 - `archive.html` and `archive.json`: the poems that have run, as a list only (date, title, author, collection, year, and the
   book's publisher and link where known);
   no poem text is kept. After replacing `poem.json`, run `python3 tools/archive_add.py` to add it to the list.

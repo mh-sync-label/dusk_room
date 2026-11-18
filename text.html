@@ -30,14 +30,16 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
 @media print { body { padding: 0; } .more { display: none; } article { animation: none !important; } .lines { font-size: 12pt; line-height: 1.5; } h1 { font-size: 18pt; } }
 @media (prefers-reduced-motion: no-preference) { article { animation: rise .6s ease-out both; } @keyframes rise { from { opacity: 0; transform: translateY(6px); } } }
 </style>
+<noscript><style>#l { display: none; }</style></noscript>
 </head>
 <body>
 <main>
   <article aria-labelledby="t">
-    <h1 id="t">The Cart</h1>
-    <p class="author" id="a">Mary Ruefle</p>
-    <p class="from" id="f">from <i>Cold Pluto</i> · 1996</p>
-    <p class="lines" id="l"></p>
+    <h1 id="t"></h1>
+    <p class="author" id="a"></p>
+    <p class="from" id="f" hidden></p>
+    <p class="lines" id="l">Loading tonight’s poem…</p>
+    <noscript><p class="lines">Tonight’s poem is loaded by JavaScript, which is off in this browser.</p></noscript>
   </article>
   <p class="more"><a id="src" hidden target="_blank" rel="noopener"></a><button id="print" type="button">Print</button><a href="archive.html">Archive</a></p>
 </main>
@@ -56,8 +58,15 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
   }
   var baked = {"title": "The Cart", "author": "Mary Ruefle", "year": 1996, "lines": [], "collection": "Cold Pluto", "publisher": "Carnegie Mellon University Press", "date": "2026-11-12"};
   document.getElementById('print').addEventListener('click', function () { window.print(); });
-  show(baked);
-  try { fetch('poem.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (p) { if (p && p.title && p.lines) show(p); }).catch(function () {}); } catch (e) {}
+  // Tonight's poem now lives on the Notturno endpoint (Cloudflare). If it cannot be reached, the page falls back to this
+  // site's poem.json, and if that fails too, to the baked copy above. Nothing is shown until one of them answers.
+  var ENDPOINT = 'https://notturno-poems.notturno-poema.workers.dev';
+  function get(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
+  function valid(p) { return p && typeof p.title === 'string' && Array.isArray(p.lines) && p.lines.length > 0; }
+  try {
+    get(ENDPOINT + '/poem.json').then(function (p) { return valid(p) ? p : get('poem.json'); })
+      .then(function (p) { show(valid(p) ? p : baked); }, function () { show(baked); });
+  } catch (e) { show(baked); }
 })();
 </script>
 </body>
