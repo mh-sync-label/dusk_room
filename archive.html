@@ -124,7 +124,7 @@ footer a:hover { color: var(--ink); }
   function say(msg) { list.textContent = ''; list.appendChild(el('p', 'note', msg)); }
   // The poems now live on the Notturno endpoint (Cloudflare). Its archive.json lists the poems whose run has begun, and
   // its poem.json says which night is up. This site's own archive.json keeps the nights from before the endpoint; where
-  // both have a night, the endpoint's entry wins. If the endpoint cannot be reached, the page falls back to this site.
+  // both have a night, the endpoint's values win and this site's fill any gaps. If the endpoint cannot be reached, the page falls back to this site.
   var ENDPOINT = 'https://notturno-poems.notturno-poema.workers.dev';
   Promise.all([get(ENDPOINT + '/archive.json'), get(ENDPOINT + '/poem.json'), get('archive.json'), get('poem.json')]).then(function (r) {
     var cloud = r[0] && Array.isArray(r[0].poems) ? r[0].poems : null, local = r[2] && Array.isArray(r[2].poems) ? r[2].poems : null;
@@ -132,7 +132,14 @@ footer a:hover { color: var(--ink); }
     if (!cloud && !local) { say('The list could not be loaded just now. Please try again in a little while.'); return; }
     var byDate = {};
     (local || []).forEach(function (p) { if (p && p.date) byDate[p.date] = p; });
-    (cloud || []).forEach(function (p) { if (p && p.date) byDate[p.date] = p; });
+    // field by field: the endpoint's value wins, and the site's fills what the endpoint lacks (a publisher, a book link)
+    (cloud || []).forEach(function (p) {
+      if (!p || !p.date) return;
+      var m = {}, k, old = byDate[p.date] || {};
+      for (k in old) m[k] = old[k];
+      for (k in p) if (p[k] != null && p[k] !== '') m[k] = p[k];
+      byDate[p.date] = m;
+    });
     // nothing after tonight's poem is listed before its night; tonight's own entry is marked and leads to the main page
     var poems = Object.keys(byDate).map(function (d) { return byDate[d]; })
       .filter(function (p) { return p && p.title && parts(p.date) && !(tonight && p.date > tonight); })
