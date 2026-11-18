@@ -29,7 +29,7 @@ and takes over on its own if the 3D scene cannot run.
   with the path to a poem file kept off GitHub (for example `~/Documents/PP/N_Room/poem_2026-11-18.json`); it copies the
   list fields and never the text. Never commit the poem file itself.
   Where the book is known, its name links to the publisher's page for it (`book_url`); a title links out only where the
-  poem has its own page (`url`), and otherwise is plain text. The poem that is up tonight (the same date as the endpoint's `poem.json`) is marked "up now" and links to the main page, and nothing dated after it is
+  poem has its own page (`url`), and otherwise is plain text. The poem that is up tonight (the same date as the endpoint's `poem.json`) is marked "up now" (its title is not a link), and nothing dated after it is
   listed.
   Since 2026-11-18 the page reads the Notturno endpoint first (`https://notturno-poems.notturno-poema.workers.dev`): its
   `archive.json` is merged with this one (field by field: the endpoint's value wins, and this file fills what it lacks), and "tonight" is the date in

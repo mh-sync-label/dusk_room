@@ -151,11 +151,14 @@ footer p { margin: 0; }
       var title = str(p.title), coll = str(p.collection), pub = str(p.publisher), year = str(p.year);
       var li = el('li', up ? 'now' : ''), t = el('time', '', day(p.date)), box = el('div'), h = el('p', 't'), w = null;
       t.setAttribute('datetime', p.date); t.setAttribute('aria-label', longDay(p.date));
-      // the title: to the main page while it is up, to the poem's own page where it has one, otherwise plain text
-      if (up || page) {
-        w = el('p', 'w', up ? 'up now' : 'read it at ' + (str(p.source) || 'its source')); w.id = 'w' + i;
+      // the title: plain text while it is up (marked "up now"), a link to the poem's own page where it has one, otherwise plain text
+      if (up) {
+        w = el('p', 'w', 'up now');
+        h.textContent = title;
+      } else if (page) {
+        w = el('p', 'w', 'read it at ' + (str(p.source) || 'its source')); w.id = 'w' + i;
         var a = el('a'); a.setAttribute('aria-describedby', w.id);
-        if (up) { a.textContent = title; a.href = 'index.html'; } else outLink(a, title, page, null, ' (opens in a new tab)');
+        outLink(a, title, page, null, ' (opens in a new tab)');
         h.appendChild(a);
       } else h.textContent = title;
       box.appendChild(h);
