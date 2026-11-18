@@ -24,7 +24,10 @@ and takes over on its own if the 3D scene cannot run.
   no poem text is kept. After replacing `poem.json`, run `python3 tools/archive_add.py` to add it to the list.
   Where the book is known, its name links to the publisher's page for it (`book_url`); a title links out only where the
   poem has its own page (`url`), and otherwise is plain text. The poem that is up tonight (the same date as `poem.json`) is marked "up now" and links to the main page, and nothing dated after it is
-  listed. The round chip at its head is `assets/notturno-logo.png`, the widget's mark, on a dark disc drawn in CSS.
+  listed.
+  Since 2026-11-18 the page reads the Notturno endpoint first (`https://notturno-poems.notturno-poema.workers.dev`): its
+  `archive.json` is merged with this one (the endpoint's entry wins for a night both have), and "tonight" is the date in
+  the endpoint's `poem.json`. If the endpoint can't be reached, the page uses this site's `archive.json` and `poem.json`. The round chip at its head is `assets/notturno-logo.png`, the widget's mark, on a dark disc drawn in CSS.
 - Where a poem lives elsewhere (an American Life in Poetry column, say), give `poem.json` two more fields:
   `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view and `text.html`
   then show a "Read it at American Life in Poetry" link, and the archive links the poem's title there. Only `https://` links are shown.

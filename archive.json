@@ -2,6 +2,14 @@
  "note": "Poems that have run, newest first. A list only: no poem text is kept here. Updated by tools/archive_add.py.",
  "poems": [
   {
+   "date": "2026-11-18",
+   "title": "The Jewel",
+   "author": "James Wright",
+   "collection": "The Branch Will Not Break",
+   "year": 1963,
+   "publisher": "Wesleyan University Press"
+  },
+  {
    "date": "2026-11-12",
    "title": "The Cart",
    "author": "Mary Ruefle",
