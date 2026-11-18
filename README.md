@@ -33,7 +33,7 @@ and takes over on its own if the 3D scene cannot run.
   listed.
   Since 2026-11-18 the page reads the Notturno endpoint first (`https://notturno-poems.notturno-poema.workers.dev`): its
   `archive.json` is merged with this one (field by field: the endpoint's value wins, and this file fills what it lacks), and "tonight" is the date in
-  the endpoint's `poem.json`. If the endpoint can't be reached, the page lists this site's `archive.json` alone, with no night marked "up now". The round chip at its head is `assets/notturno-logo.png`, the widget's mark, on a dark disc drawn in CSS.
+  the endpoint's `poem.json`. If the endpoint can't be reached, the page lists this site's `archive.json` alone, with no night marked "up now". The round chip at its head is `assets/notturno-logo.png`, the widget's mark, on a dark disc drawn in CSS; it links to https://www.maxxhillery.com/notturno.
 - Where a poem lives elsewhere (an American Life in Poetry column, say), give the poem (on the endpoint, and in the poem file kept off GitHub) two more fields:
   `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view and `text.html`
   then show a "Read it at American Life in Poetry" link, and the archive links the poem's title there. Only `https://` links are shown.
