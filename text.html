@@ -56,17 +56,16 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
     var src = document.getElementById('src'), ok = typeof p.url === 'string' && /^https:\/\//.test(p.url);   // where the poem lives (e.g. its American Life in Poetry column)
     src.hidden = !ok; if (ok) { src.href = p.url; src.textContent = 'Read it at ' + (p.source || 'its source'); }
   }
-  var baked = {"title": "The Cart", "author": "Mary Ruefle", "year": 1996, "lines": [], "collection": "Cold Pluto", "publisher": "Carnegie Mellon University Press", "date": "2026-11-12"};
   document.getElementById('print').addEventListener('click', function () { window.print(); });
-  // Tonight's poem now lives on the Notturno endpoint (Cloudflare). If it cannot be reached, the page falls back to this
-  // site's poem.json, and if that fails too, to the baked copy above. Nothing is shown until one of them answers.
+  // Tonight's poem lives only on the Notturno endpoint (Cloudflare); no poem text is kept on this site. If the endpoint
+  // cannot be reached, or does not answer with a poem, a quiet note takes the poem's place.
   var ENDPOINT = 'https://notturno-poems.notturno-poema.workers.dev';
   function get(u) { return fetch(u, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); }
   function valid(p) { return p && typeof p.title === 'string' && Array.isArray(p.lines) && p.lines.length > 0; }
+  function fail() { document.getElementById('l').textContent = 'Tonight’s poem couldn’t be loaded just now. Please try again in a little while.'; }
   try {
-    get(ENDPOINT + '/poem.json').then(function (p) { return valid(p) ? p : get('poem.json'); })
-      .then(function (p) { show(valid(p) ? p : baked); }, function () { show(baked); });
-  } catch (e) { show(baked); }
+    get(ENDPOINT + '/poem.json').then(function (p) { if (valid(p)) show(p); else fail(); }, fail);
+  } catch (e) { fail(); }
 })();
 </script>
 </body>

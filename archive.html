@@ -124,11 +124,12 @@ footer a:hover { color: var(--ink); }
   function say(msg) { list.textContent = ''; list.appendChild(el('p', 'note', msg)); }
   // The poems now live on the Notturno endpoint (Cloudflare). Its archive.json lists the poems whose run has begun, and
   // its poem.json says which night is up. This site's own archive.json keeps the nights from before the endpoint; where
-  // both have a night, the endpoint's values win and this site's fill any gaps. If the endpoint cannot be reached, the page falls back to this site.
+  // both have a night, the endpoint's values win and this site's fill any gaps. If the endpoint cannot be reached, the page
+  // lists this site's archive.json alone, with no night marked "up now" (this site keeps no poem of its own).
   var ENDPOINT = 'https://notturno-poems.notturno-poema.workers.dev';
-  Promise.all([get(ENDPOINT + '/archive.json'), get(ENDPOINT + '/poem.json'), get('archive.json'), get('poem.json')]).then(function (r) {
+  Promise.all([get(ENDPOINT + '/archive.json'), get(ENDPOINT + '/poem.json'), get('archive.json')]).then(function (r) {
     var cloud = r[0] && Array.isArray(r[0].poems) ? r[0].poems : null, local = r[2] && Array.isArray(r[2].poems) ? r[2].poems : null;
-    var now = r[1] && parts(r[1].date) ? r[1] : (r[3] && parts(r[3].date) ? r[3] : null), tonight = now ? now.date : null;
+    var now = r[1] && parts(r[1].date) ? r[1] : null, tonight = now ? now.date : null;
     if (!cloud && !local) { say('The list could not be loaded just now. Please try again in a little while.'); return; }
     var byDate = {};
     (local || []).forEach(function (p) { if (p && p.date) byDate[p.date] = p; });

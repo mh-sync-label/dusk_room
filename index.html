@@ -245,8 +245,15 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
 </div>
 <script>
 (function () {   // the text view and the page's state. No 3D needed here; this runs before three.js loads.
-  // Tonight's poem, baked in so the page is never empty; poem.json, fetched by the room, replaces it. The one copy on the page.
-  var POEM = {"title": "The Cart", "author": "Mary Ruefle", "year": 1996, "lines": [], "collection": "Cold Pluto", "publisher": "Carnegie Mellon University Press", "date": "2026-11-12"};
+  // Tonight's poem lives only on the Notturno endpoint (Cloudflare); no poem text is kept in this page. Until it arrives,
+  // a text-free placeholder fills every place the poem shows; if the endpoint can't be reached, a quiet note takes its place.
+  var ENDPOINT = 'https://notturno-poems.notturno-poema.workers.dev';
+  var POEM = { title: '', author: '', lines: ['Loading tonight’s poem…'] };
+  var UNAVAILABLE = { title: '', author: '', lines: ['Tonight’s poem couldn’t be loaded just now.', 'Please try again in a little while.'] };
+  function validPoem(p) { return !!p && typeof p.title === 'string' && Array.isArray(p.lines) && p.lines.length > 0; }
+  // one fetch, shared by the text view (here) and the room (which awaits it once the desk is built)
+  var poemReady = fetch(ENDPOINT + '/poem.json', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+    .then(function (p) { return validPoem(p) ? { poem: p, source: 'tonight' } : { poem: UNAVAILABLE, source: 'unavailable' }; });
   // The Moon, shared with the room: its age in days since the new moon, the phase name, and the date line on the sheet.
   // The feed may supply p.date 'YYYY-MM-DD' and p.phase; otherwise both are computed here for 9 pm tonight.
   var SYNODIC = 29.530588853, PHASES = ['New moon', 'Waxing crescent', 'First quarter', 'Waxing gibbous', 'Full moon', 'Waning gibbous', 'Last quarter', 'Waning crescent'];
@@ -259,14 +266,14 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
       return { date: date, phase: phase, line: date + ' · ' + phase };
     }
   };
-  window.__POEM = POEM; window.__MOON = MOON;
+  window.__POEM = POEM; window.__poemReady = poemReady; window.__MOON = MOON;
 
   // ---------- DuskRoom: the page's state, in one place ----------
   // Four facts, each with a few named values, stand in for the classes, labels and flags that used to be set from a dozen places:
   //   scene   'loading' | 'ready' | 'failed'          the 3D room's own life: being built, showing, or unable to run
   //   panel   'scene' | 'text'                        what the reader is looking at; text is always available, and forced once the scene fails
   //   view    'room' | 'reading' | <a review view>    where the camera is; 'reading' is on the sheet (in the Vathograph, the poem overlay)
-  //   poem    'baked' | 'tonight'                     whether poem.json has arrived or the baked copy is showing
+  //   poem    'placeholder' | 'tonight' | 'unavailable'  whether tonight's poem has arrived from the endpoint, is still loading, or could not be loaded
   // and flags: moving (the camera is between views), orbit (the review orbit), visible (the stage is on screen),
   // longPoem (the sheet hangs over the desk, so there is something to scroll), reason (why the scene failed).
   // Rules: panel is 'text' whenever scene is 'failed'; view can be 'reading' only once the room says the sheet exists.
@@ -282,7 +289,7 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
     reloadHint: ' Reload the page to try again.'
   };
   var D = window.DuskRoom = {
-    state: { scene: 'loading', panel: 'scene', view: 'room', poem: 'baked', moving: false, orbit: false, visible: true, longPoem: false, reason: '' },
+    state: { scene: 'loading', panel: 'scene', view: 'room', poem: 'placeholder', moving: false, orbit: false, visible: true, longPoem: false, reason: '' },
     copy: copy,
     canRead: false,                              // the room sets this once the sheet is built
     listeners: [],
@@ -344,6 +351,7 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
     src.hidden = !ok; if (ok) { src.href = p.url; src.textContent = 'Read it at ' + (p.source || 'its source'); }
   }
   fill(POEM); render(['scene', 'panel', 'view']);
+  poemReady.then(function (r) { fill(r.poem); D.set({ poem: r.source }); });
   btn.addEventListener('click', D.toggleText);
   $('tvPrint').addEventListener('click', function () {   // the poem alone: the class is only on while the print dialog is up
     document.body.classList.add('printing-poem');
@@ -351,7 +359,7 @@ html:has(body.viewer.framed) { background: #14161b; } html:has(body.viewer.frame
     window.addEventListener('afterprint', done); window.print();
   });
   // the older hooks, kept for anything that still calls them
-  window.__showText = function (p) { if (p && p.title && p.lines) fill(p); };
+  window.__showText = function (p) { if (p && typeof p.title === 'string' && p.lines) fill(p); };
   window.__toText = function (reason) { D.sceneFailed(reason); };
   // (whether WebGL works is found out by making the renderer itself, in the room's script; a trial context here would use up one of the few the browser allows)
 })();
@@ -449,9 +457,9 @@ async function buildRoom(DUST) {
   // a very slow drift of the camera, like someone breathing; off with ?still=1, and always off for reduced motion
   const IDLE_DRIFT = !/[?&]still=1/.test(location.search) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // ---------- tonight's poem: poem.json, replaced nightly; until it arrives, the copy baked into the text view ----------
+  // ---------- tonight's poem: from the Notturno endpoint, fetched once by the text view's script; until it arrives, a text-free placeholder ----------
   // Contract: { title, author, year, lines: [..], collection?, date?, phase?, note? }  (collection: the book the poem is from, if known)
-  const PLACEHOLDER = window.__POEM;
+  const POEM_READY = window.__poemReady;
 
   // ---------- renderer: the Endcap's approved colour look ----------
   const canvas = document.getElementById('c');
@@ -3075,7 +3083,7 @@ async function buildRoom(DUST) {
     if (/[?&]debug=1/.test(location.search)) console.log('sheet', JSON.stringify({ key, seed, picks, inkPpi: ippi, ink: [IW, IH], paper: [W, H] }));
     sheetL = lay.L; sheetFocus = drop > 0.05 ? MARG + drop + block / 2 + 1.0 : 0;
     document.getElementById('poemText').textContent = p.lines.join('\n');
-    document.getElementById('poemMeta').textContent = `${p.title}, ${p.author}` + (p.note ? ` · ${p.note}` : '');
+    document.getElementById('poemMeta').textContent = [p.title, p.author].filter(Boolean).join(', ') + (p.note ? ` · ${p.note}` : '');
     return lay.L;
   }
 
@@ -3130,7 +3138,7 @@ async function buildRoom(DUST) {
     sheetMat.map = pageTex; sheetMat.needsUpdate = true;
     sheetL = lay.L; sheetFocus = drop > 0.05 ? MARG + drop + block / 2 + 1.0 : 0;   // the frame centres 1 in below the poem's middle, so the poem sits above centre   // (a long poem leaves a rounding-sized drop)
     document.getElementById('poemText').textContent = p.lines.join('\n');
-    document.getElementById('poemMeta').textContent = `${p.title}, ${p.author}` + (p.note ? ` · ${p.note}` : '');
+    document.getElementById('poemMeta').textContent = [p.title, p.author].filter(Boolean).join(', ') + (p.note ? ` · ${p.note}` : '');
     return lay.L;
   }
 
@@ -3763,7 +3771,7 @@ async function buildRoom(DUST) {
     scene.add(m); folderMeshes.push(m);
   }
 
-  // setPoem: tonight's poem into every place it shows (text view, overlay, callouts, the sheet). source: 'tonight' (poem.json) or 'baked'.
+  // setPoem: tonight's poem into every place it shows (text view, overlay, callouts, the sheet). source: 'tonight' (from the endpoint), 'unavailable' (the endpoint failed), or 'placeholder'.
   function setPoem(p, source) {
     lastPoem = p;
     if (window.__showText) window.__showText(p); if (VATH) fillOverlay(p); setCallouts(p); drawSheet(p); buildSheet();
@@ -3819,8 +3827,7 @@ async function buildRoom(DUST) {
       const anchor = { x: (tb.min.x + tb.max.x) / 2, zBack: tb.min.z, yOnFolder: tb.max.y, zFolderFront: front + 0.004, deskY: db.max.y, zEdge: db.max.z };
       path = buildPath(anchor); makeContact(anchor); makeBookmark(anchor, tb, pb);
       if (CAFE || VATH) { scene.remove(contact); contact = null; }   // the café table has no apron for the hanging sheet to shade
-      let poem = PLACEHOLDER, source = 'baked';
-      try { const r = await fetch('poem.json', { cache: 'no-store' }); if (r.ok) { poem = await r.json(); source = 'tonight'; } } catch (e) { /* the baked copy stays */ }
+      const { poem, source } = await POEM_READY;   // never rejects: tonight's poem, or the quiet note if the endpoint failed
       setPoem(poem, source);
       requestAnimationFrame(() => requestAnimationFrame(() => D.sceneReady()));   // after the first frame has drawn: the loading screen fades, the room settles in
     } catch (e) {
