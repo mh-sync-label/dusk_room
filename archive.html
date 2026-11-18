@@ -54,11 +54,9 @@ time { color: var(--quiet); font-size: .9rem; font-variant-numeric: tabular-nums
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .note { margin: 0; color: var(--soft); }
 
-/* the foot: tonight's poem, and the copyright as the quietest line */
+/* the foot: the copyright as the quietest line */
 footer { max-width: 36rem; margin: 3.4rem auto 0; font-size: .95rem; }
 footer p { margin: 0; }
-footer a { display: inline-block; padding-block: .6rem; color: var(--soft); }
-footer a:hover { color: var(--ink); }
 .copy { margin-top: .4rem; font-size: .85rem; color: var(--quiet); }
 
 @media (max-width: 380px) { li { grid-template-columns: 3.1rem minmax(0, 1fr); gap: 0 .75rem; } }
@@ -71,7 +69,7 @@ footer a:hover { color: var(--ink); }
   h1 { font-size: 18pt; } #list { margin-top: 16pt; } h2 { margin: 14pt 0 4pt; }
   li { padding: 3pt 0 5pt; break-inside: avoid; } h2 { break-after: avoid; }
   a { text-decoration: none; outline: none !important; } .out { display: none; }
-  footer { margin-top: 18pt; } footer .back { display: none; }
+  footer { margin-top: 18pt; }
 }
 </style>
 </head>
@@ -84,7 +82,6 @@ footer a:hover { color: var(--ink); }
   <div id="list" aria-live="polite"><p class="note">Loading the list…</p></div>
 </main>
 <footer>
-  <p class="back"><a href="index.html">Tonight’s poem</a></p>
   <p class="copy">© 2026 Maxx Hillery</p>
 </footer>
 <script>

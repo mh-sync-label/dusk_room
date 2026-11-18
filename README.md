@@ -43,7 +43,7 @@ and takes over on its own if the 3D scene cannot run.
   The archive then reads "from *The Rain in the Trees* · 1988 · Knopf", with the book's name linked to that page. The tool
   refuses a `book_url` that is not a plain `https://` link, and the page ignores one. Leave both out when the book is not
   known; the entry then shows just the title and the poet (and the book's name, if known, unlinked).
-- Printing: the Text only view and `text.html` have a "Print" link that prints the poem alone.
+- Printing: the Text only view in `index.html` has a "Print" link that prints the poem alone.
 - Embedding: the page detects when it is inside an iframe and fills the frame edge to edge; `?embed=1` forces the same.
   `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
   time (ms per frame and fps, averaged over the last second), the shadow-map rate, and the pixel ratio in the stage's

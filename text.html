@@ -25,8 +25,8 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
 .from { margin: .25em 0 0; font-size: .95rem; color: var(--faint); }
 .lines { margin: 1.4em 0 0; white-space: pre-wrap; font-size: clamp(1.06rem, 3.6vw, 1.17rem); line-height: 1.55; overflow-wrap: break-word; }
 .more { margin: 2.2em 0 0; font-size: .95rem; color: var(--faint); display: flex; flex-wrap: wrap; gap: .3em 1.2em; align-items: baseline; }
-.more a, .more button { color: var(--soft); font: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-decoration-color: #cfc9be; text-underline-offset: .18em; }
-.more a:hover, .more button:hover { color: var(--ink); text-decoration-color: currentColor; }
+.more a { color: var(--soft); text-decoration: underline; text-decoration-color: #cfc9be; text-underline-offset: .18em; }
+.more a:hover { color: var(--ink); text-decoration-color: currentColor; }
 @media print { body { padding: 0; } .more { display: none; } article { animation: none !important; } .lines { font-size: 12pt; line-height: 1.5; } h1 { font-size: 18pt; } }
 @media (prefers-reduced-motion: no-preference) { article { animation: rise .6s ease-out both; } @keyframes rise { from { opacity: 0; transform: translateY(6px); } } }
 </style>
@@ -41,7 +41,7 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
     <p class="lines" id="l">Loading tonight’s poem…</p>
     <noscript><p class="lines">Tonight’s poem is loaded by JavaScript, which is off in this browser.</p></noscript>
   </article>
-  <p class="more"><a id="src" hidden target="_blank" rel="noopener"></a><button id="print" type="button">Print</button><a href="archive.html">Archive</a></p>
+  <p class="more"><a id="src" hidden target="_blank" rel="noopener"></a><a href="archive.html">Archive</a></p>
 </main>
 <script>
 (function () {
@@ -56,7 +56,6 @@ h1 { margin: 0 0 .15em; font-weight: 500; font-size: clamp(1.45rem, 4.5vw, 1.75r
     var src = document.getElementById('src'), ok = typeof p.url === 'string' && /^https:\/\//.test(p.url);   // where the poem lives (e.g. its American Life in Poetry column)
     src.hidden = !ok; if (ok) { src.href = p.url; src.textContent = 'Read it at ' + (p.source || 'its source'); }
   }
-  document.getElementById('print').addEventListener('click', function () { window.print(); });
   // Tonight's poem lives only on the Notturno endpoint (Cloudflare); no poem text is kept on this site. If the endpoint
   // cannot be reached, or does not answer with a poem, a quiet note takes the poem's place.
   var ENDPOINT = 'https://notturno-poems.notturno-poema.workers.dev';
