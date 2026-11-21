@@ -2,9 +2,9 @@
 
 Poems no longer live in this repo: tonight's poem is served only by the Notturno endpoint, and nothing here holds poem
 text. An archive entry can be added to archive.json by hand, or with this tool, given the path to a poem file kept
-elsewhere (for example in Documents/PP/N_Room on Maxx's Mac):
+elsewhere (for example in Documents/PP/Notturno/Poems on Maxx's Mac):
 
-    python3 tools/archive_add.py ~/Documents/PP/N_Room/poem_2026-11-18.json
+    python3 tools/archive_add.py ~/Documents/PP/Notturno/Poems/poem_2026-11-18.json
 
 With no path it reads poem.json at the top of the repo, which should not exist there any more; keep the file off GitHub.
 
