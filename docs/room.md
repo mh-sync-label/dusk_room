@@ -1,53 +1,46 @@
-# Dusk Room
+# The room (Dusk Room)
 
 A live three.js scene for maxxhillery.com: a light-oak desk in a quiet greyscale room at dusk, with tonight's
 moon-matched poem on loose sheets in an open folder. Click the folder (or focus the scene and press Enter) to read;
 long poems hang over the desk and scroll. A "Text only" view sits above the scene for anyone who would rather read,
 and takes over on its own if the 3D scene cannot run.
 
-- `index.html`: the page (three.js r147 from jsDelivr, pinned with integrity hashes). The viewer builds the Nook only;
+It lives at `room/` (https://mh-sync-label.github.io/dusk_room/room/). Until the repo was reorganised around the Notturno
+app it was the repo's root `index.html`; the root page now forwards to `room/` whenever it is framed or addressed with any
+of the scene's query parameters (see Embedding), so the website's existing iframe of the root URL keeps showing the scene.
+
+- `room/index.html`: the page (three.js r147 from jsDelivr, pinned with integrity hashes). The viewer builds the Nook only;
   the other rooms (Rain, Linen, Café, Vathograph, Dressing room) stay in the code for the review build and are never
   built here. The scene code tracks the master page, `Desk_and_Folder_v<N>.html` in `Documents/PP/N_Room` on Maxx's
   Mac (currently v75): to bring a new master in, three-way merge it against the version the live page last took, keep
-  the viewer's own lines (the Text-only view, the `DuskRoom` state, the assets in `assets/`, the closer reading
-  distance `READ_D`/`READ_HALF`), and extract any new embedded data to `assets/`.
-- `assets/`: the desk model (`desk.glb`), the brick wall's five maps, the Notturno paper (`notturno-paper.jpg`), the
-  loading logo, the bookmark, the dust frames (`dust.json`), the café figures (`cafe-figures.json`, fetched only when
-  the café is built), and the Vathograph picture and its cut-out chair (`vath-bg.jpg`, `vath-fg.png`, used only there).
-  Kept as files rather than inlined so the page itself is small and the browser caches each asset on its own.
+  the viewer's own lines (the Text-only view, the `DuskRoom` state, the assets in `room/assets/`, the closer reading
+  distance `READ_D`/`READ_HALF`, and the `../archive.html` link in the Text only view), and extract any new embedded data
+  to `room/assets/`.
+- `room/assets/`: the desk model (`desk.glb`), the brick wall's five maps (`brick-albedo.jpg`, `brick-normal.jpg`,
+  `brick-rough.jpg`, `brick-ao.jpg`, `brick-height.png`, loaded by the `assets/brick-` prefix), the Notturno paper
+  (`notturno-paper.jpg`), the loading logo (`logo.png`), the bookmark (`bookmark.jpg`), the dust frames (`dust.json`), the
+  café figures (`cafe-figures.json`, fetched only when the café is built), and the Vathograph picture and its cut-out chair
+  (`vath-bg.jpg`, `vath-fg.png`, used only there). Kept as files rather than inlined so the page itself is small and the
+  browser caches each asset on its own. The page refers to them as `assets/...`, relative to `room/`. The root `assets/`
+  folder holds only what the app's pages use (`notturno-logo.png`, for `archive.html`) and the wordmark
+  (`notturno-wordmark.svg`); the room uses nothing from it.
 - Tonight's poem: the poems live only on the Notturno endpoint (`https://notturno-poems.notturno-poema.workers.dev`), and
   nothing in this repo holds poem text (the repo is public). The page fetches the endpoint's `poem.json`,
   `{ title, author, year, lines: [...], collection?, publisher?, book_url?, date?, source?, url?, phase?, note? }`, with no
   caching, once, in the text-view script (`ENDPOINT` near its top); the room waits on the same fetch. Until it arrives, a
   text-free placeholder ("Loading tonight's poem…") fills the text view and the sheet, and if the endpoint can't be
-  reached or doesn't answer with a poem, a quiet note says the poem couldn't be loaded just now.
-- `text.html`: the poem alone, as a plain page, for a direct link. It reads tonight's poem from the Notturno endpoint; if that
-  cannot be reached, it shows the same quiet note in place of the poem.
-- `archive.html` and `archive.json`: the poems that have run, as a list only (date, title, author, collection, year, and the
-  book's publisher and link where known);
-  no poem text is kept. Add each night's entry to `archive.json` by hand, or run `python3 tools/archive_add.py <poem file>`
-  with the path to a poem file kept off GitHub (for example `~/Documents/PP/N_Room/poem_2026-11-18.json`); it copies the
-  list fields and never the text. Never commit the poem file itself.
-  Where the book is known, its name links to the publisher's page for it (`book_url`); a title links out only where the
-  poem has its own page (`url`), and otherwise is plain text. The poem that is up tonight (the same date as the endpoint's `poem.json`) is marked "up now" (its title is not a link), and nothing dated after it is
-  listed.
-  Since 2026-11-18 the page reads the Notturno endpoint first (`https://notturno-poems.notturno-poema.workers.dev`): its
-  `archive.json` is merged with this one (field by field: the endpoint's value wins, and this file fills what it lacks), and "tonight" is the date in
-  the endpoint's `poem.json`. If the endpoint can't be reached, the page lists this site's `archive.json` alone, with no night marked "up now". The round chip at its head is `assets/notturno-logo.png`, the widget's mark, on a dark disc drawn in CSS; it links to https://www.maxxhillery.com/notturno.
-- Where a poem lives elsewhere (an American Life in Poetry column, say), give the poem (on the endpoint, and in the poem file kept off GitHub) two more fields:
-  `"source": "American Life in Poetry"` and `"url": "https://..."`. The Text only view and `text.html`
-  then show a "Read it at American Life in Poetry" link, and the archive links the poem's title there. Only `https://` links are shown.
-- When the book a poem comes from is known, give the poem its publisher and the publisher's own page for the book, as
-  part of the nightly step (before running `tools/archive_add.py`, which carries them into the archive):
-  `"collection": "The Rain in the Trees", "publisher": "Knopf", "book_url": "https://www.penguinrandomhouse.com/books/113558/the-rain-in-the-trees-by-w-s-merwin/"`.
-  The archive then reads "from *The Rain in the Trees* · 1988 · Knopf", with the book's name linked to that page. The tool
-  refuses a `book_url` that is not a plain `https://` link, and the page ignores one. Leave both out when the book is not
-  known; the entry then shows just the title and the poet (and the book's name, if known, unlinked).
-- Printing: the Text only view in `index.html` has a "Print" link that prints the poem alone.
+  reached or doesn't answer with a poem, a quiet note says the poem couldn't be loaded just now. Where the poem has
+  `source` and an `https://` `url`, the Text only view shows a "Read it at <source>" link. The Text only view's "Archive"
+  link goes to `../archive.html`. (How poems and the archive are kept is in the top-level README.)
+- Printing: the Text only view in `room/index.html` has a "Print" link that prints the poem alone.
 - Embedding: the page detects when it is inside an iframe and fills the frame edge to edge; `?embed=1` forces the same.
   `?still=1` turns off the slow camera drift. `?debug=1` logs every state change to the console and shows the frame
   time (ms per frame and fps, averaged over the last second), the shadow-map rate, and the pixel ratio in the stage's
-  corner; the same numbers are at `DuskRoom.perf`.
+  corner; the same numbers are at `DuskRoom.perf`. The website iframes the repo's root URL; the root `index.html`
+  forwards (with `location.replace`, keeping the query string and hash) to `room/` when it is inside a frame (or the check
+  throws) or when its query string carries any of the parameters the scene reads: `embed`, `still`, `debug`, `illum`,
+  `phase`, `move`, `sheet`, `palette`. Inside `room/` the scene's own frame check is unchanged, so a forwarded iframe is
+  still detected as framed. To embed the room directly, point the iframe at `.../dusk_room/room/`.
 - Lighting: two lights carry the Nook, the warm lamp on the folder and cool moonlight through the window, and the rest of
   the room falls toward a dark blue-grey. The moonlight follows tonight's phase: the moon in the window, the beam on the
   floor, and its strength all scale with the lit fraction. To review another night, `?illum=0..1` sets the lit fraction
@@ -58,15 +51,16 @@ and takes over on its own if the 3D scene cannot run.
   The poem is drawn as its own high-resolution ink texture on a near-white sheet; on narrow (phone) frames it is set
   larger, and long lines turn over with a hanging indent. Each poem's sheet carries a few quiet marks (a fold, a turned
   corner, a pencil tick) seeded from the poem itself, so every reader sees the same sheet; `?sheet=<word>` previews
-  another. The knobs are `MOVE`, `INK`, `SHEET`, `TALL`, and `WHITE` in `index.html`.
+  another. The knobs are `MOVE`, `INK`, `SHEET`, `TALL`, and `WHITE` in `room/index.html`.
+- Review palette: `?palette=<name>` (for example `grey`, `green`, `colour`) overrides the room's palette.
 - Rendering cost: the shadow maps are redrawn every other frame while the room is still and every third while the camera
   is moving (they are drawn from the lights, so the camera's moves do not change them); the renderer asks for the
   high-performance GPU on two-GPU machines.
 
 ## State
 
-The page keeps its state in one object, `window.DuskRoom`, defined in the first script of `index.html` (before three.js
-loads). Four facts and a few flags; everything the reader sees follows from them.
+The page keeps its state in one object, `window.DuskRoom`, defined in the first script of `room/index.html` (before
+three.js loads). Four facts and a few flags; everything the reader sees follows from them.
 
 | fact | values | meaning |
 |---|---|---|

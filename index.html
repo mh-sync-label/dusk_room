@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script>
+/* The website (maxxhillery.com) iframes this address for the 3D room, which now lives at room/. Framed, or addressed with
+   any query parameter the room reads, this page hands over to room/ (keeping the query and hash) before anything renders.
+   Otherwise it is the app's front page. See docs/room.md. */
+(function () {
+  var framed = false;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+  if (framed || /[?&](embed|still|debug|illum|phase|move|sheet|palette)(=|&|$)/.test(location.search)) location.replace('room/' + location.search + location.hash);
+})();
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notturno</title>
+<meta name="description" content="Notturno, a small widget for the Mac desktop. A poem releases every other day at sundown.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+/* the app's front page: the same plain white and type as archive.html and update.html, with archive.html's chip at the head */
+:root { --ground: #ffffff; --ink: #1b1b1b; --soft: #55575b; --quiet: #6f685e; --hair: #cfc9be; --chip: #161616;
+  --serif: "EB Garamond", Garamond, "Times New Roman", serif; color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--ground); color: var(--ink); font-family: var(--serif); font-size: 1.0625rem; line-height: 1.4;
+  -webkit-text-size-adjust: 100%; text-rendering: optimizeLegibility;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: max(clamp(24px, 6vh, 64px), env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px)); }
+main { max-width: 36rem; margin: 0 auto; }
+a { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-decoration-color: var(--hair); text-underline-offset: .2em; }
+a:hover { text-decoration-color: currentColor; }
+a:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 2px; }
+.chip { display: grid; place-items: center; width: 48px; height: 48px; margin: 0 auto 2.4rem; border-radius: 50%;
+  background: var(--chip); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.chip img { display: block; width: 27px; height: auto; margin-top: 1px; }
+.chip:focus-visible { outline-offset: 4px; border-radius: 50%; }
+h1 { margin: 0 0 .3em; font-weight: 500; font-size: clamp(1.6rem, 5vw, 1.85rem); line-height: 1.15; }
+.lead { margin: 0; color: var(--soft); }
+/* the download, as on update.html */
+.get { display: inline-block; margin: 1.6em 0 0; padding: .5em 1.15em .55em; border: 1px solid var(--ink); border-radius: 999px; font-size: 1.05rem; text-decoration: none; color: var(--ink); }
+.get:hover, .get:focus-visible { background: var(--ink); color: var(--ground); }
+.links { margin: 2.2em 0 0; font-size: .98rem; color: var(--soft); }
+footer { max-width: 36rem; margin: 3.4rem auto 0; font-size: .95rem; }
+footer p { margin: 0; }
+.copy { margin-top: .4rem; font-size: .85rem; color: var(--quiet); }
+</style>
+</head>
+<body>
+<main>
+  <a class="chip" href="https://www.maxxhillery.com/notturno" title="Notturno"><img src="assets/notturno-logo.png" width="108" height="91" alt="Notturno"></a>
+  <h1>Notturno</h1>
+  <p class="lead">A small widget for the Mac desktop. A poem releases every other day at sundown; its title appears below the planet, and it can be read through the next day, until sunrise of the third day.</p>
+  <a class="get" href="https://github.com/mh-sync-label/dusk_room/releases/latest/download/Notturno.dmg">Download Notturno</a>
+  <nav class="links" aria-label="More"><a href="update.html">How to update</a> · <a href="archive.html">Archive</a> · <a href="text.html">Tonight’s poem</a> · <a href="room/">The room</a></nav>
+</main>
+<footer>
+  <p class="copy">© 2026 Maxx Hillery</p>
+</footer>
+</body>
+</html>
