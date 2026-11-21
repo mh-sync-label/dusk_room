@@ -11,7 +11,7 @@ of the scene's query parameters (see Embedding), so the website's existing ifram
 
 - `room/index.html`: the page (three.js r147 from jsDelivr, pinned with integrity hashes). The viewer builds the Nook only;
   the other rooms (Rain, Linen, Café, Vathograph, Dressing room) stay in the code for the review build and are never
-  built here. The scene code tracks the master page, `Desk_and_Folder_v<N>.html` in `Documents/PP/N_Room` on Maxx's
+  built here. The scene code tracks the master page, `Desk_and_Folder_v<N>.html` in `Documents/PP/Room` on Maxx's
   Mac (currently v75): to bring a new master in, three-way merge it against the version the live page last took, keep
   the viewer's own lines (the Text-only view, the `DuskRoom` state, the assets in `room/assets/`, the closer reading
   distance `READ_D`/`READ_HALF`, and the `../archive.html` link in the Text only view), and extract any new embedded data

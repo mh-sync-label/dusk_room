@@ -80,7 +80,7 @@ the book's publisher and link where known); no poem text is kept. The page says 
 
 Each time a poem runs, add its entry to `archive.json`, by hand or with the tool:
 
-    python3 tools/archive_add.py ~/Documents/PP/N_Room/poem_2026-11-18.json
+    python3 tools/archive_add.py ~/Documents/PP/Notturno/Poems/poem_2026-11-18.json
 
 The argument is the path to a poem file kept off GitHub. The tool copies only the list fields (`date`, `title`, `author`,
 `collection`, `year`, `source`, `url`, `publisher`, `book_url`) and never the text, and writes `archive.json` at the top of
